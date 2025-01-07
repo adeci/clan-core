@@ -7,7 +7,7 @@ let
   };
   evalDocs = pkgs.nixosOptionsDoc {
     options = eval.options;
-    warningsAreErrors = false;
+    warningsAreErrors = true;
   };
 in
 {

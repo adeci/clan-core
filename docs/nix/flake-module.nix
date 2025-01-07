@@ -20,7 +20,10 @@
       # Frontmatter for clanModules
       clanModulesFrontmatter =
         let
-          docs = pkgs.nixosOptionsDoc { options = self.lib.modules.frontmatterOptions; };
+          docs = pkgs.nixosOptionsDoc {
+            options = self.lib.modules.frontmatterOptions;
+            warningsAreErrors = true;
+          };
         in
         docs.optionsJSON;
 
