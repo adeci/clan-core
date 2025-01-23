@@ -1,6 +1,5 @@
 {
   lib,
-  pkgs,
   ...
 }:
 let
@@ -89,7 +88,10 @@ in
         };
         settings = lib.mkOption {
           description = "override the network config in /var/lib/zerotier/bla/$network.json";
-          type = lib.types.submodule { freeformType = (pkgs.formats.json { }).type; };
+          # TODO:
+          # Make pkgs.formats compatible with json schema converter
+          # { freeformType = (pkgs.formats.json { }).type; };
+          type = lib.types.submodule { freeformType = lib.types.attrsOf lib.types.anything; };
           default = { };
         };
       };
