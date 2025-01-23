@@ -5,95 +5,264 @@
   ...
 }:
 let
+  generators = config.clan.core.vars.generators;
+
   instanceNames = builtins.attrNames config.clan.inventory.services.zerotier;
   instanceName = builtins.head instanceNames;
+
   zeroTierInstance = config.clan.inventory.services.zerotier.${instanceName};
   roles = zeroTierInstance.roles;
-  controllerMachine = builtins.head roles.controller.machines;
-  networkIdPath = "${config.clan.core.settings.directory}/machines/${controllerMachine}/facts/zerotier-network-id";
-  networkId = if builtins.pathExists networkIdPath then builtins.readFile networkIdPath else null;
+
+  isController = builtins.elem machineName roles.controller.machines;
+
+  networkId = generators.zerotier-controller.files.zerotier-network-id.value;
+
+  machineName = config.clan.core.settings.machine.name;
+
   moons = roles.moon.machines;
   moonIps = builtins.foldl' (
-    ips: name:
-    if
-      builtins.pathExists "${config.clan.core.settings.directory}/machines/${name}/facts/zerotier-ip"
-    then
+    ips: machineName:
+    let
+      ipValuePath = "${config.clan.core.settings.directory}/vars/per-machine/${machineName}/zerotier-ip/value";
+    in
+    if builtins.pathExists ipValuePath then
       ips
       ++ [
-        (builtins.readFile "${config.clan.core.settings.directory}/machines/${name}/facts/zerotier-ip")
+        (builtins.readFile ipValuePath)
       ]
     else
       ips
   ) [ ] moons;
-in
-{
-  options.clan.zerotier =
-    let
-      inherit (lib.types) listOf str;
-    in
-    {
-      excludeHosts = lib.mkOption {
-        type = listOf str;
-        default = [ config.clan.core.settings.machine.name ];
-        defaultText = lib.literalExpression "[ config.clan.core.settings.machine.name ]";
-        description = "Hosts that should be excluded";
+
+  networkCfg = config.clan.zerotier.networking;
+
+  controllerGeneratorDecl = {
+    migrateFact = "zerotier";
+    share = true;
+    files = {
+      # This is the controller peer IP
+      zerotier-network-id = {
+        secret = false;
+        # Doesn't need to be deployed. Just a reference is enough
+        deploy = false;
       };
-      networkIps = lib.mkOption {
-        type = listOf str;
-        default = [ ];
-        description = "Extra zerotier network Ips that should be accepted";
+      # Only deployed to the controller
+      # Per network
+      zerotier-ip = {
+        secret = false;
+        # Deploy only on controller
+        deploy = isController;
       };
-      networkIds = lib.mkOption {
-        type = listOf str;
-        default = [ ];
-        description = "Extra zerotier network Ids that should be accepted";
+      # The peer secret
+      # Per machine global
+      zerotier-identity-secret = {
+        secret = true;
+        # Default for peers. Deploy only on controller
+        deploy = isController;
       };
     };
-
-  config = {
-    assertions = [
-      # TODO: This should also be checked via frontmatter constraints
-      {
-        assertion = builtins.length instanceNames == 1;
-        message = "The zerotier module currently only supports one instance per machine, but found ${builtins.toString instanceNames} on machine ${config.clan.core.settings.machine.name}";
-      }
+    runtimeInputs = [
+      config.services.zerotierone.package
+      pkgs.python3
     ];
-
-    clan.core.networking.zerotier.networkId = networkId;
-    clan.core.networking.zerotier.name = instanceName;
-
-    # TODO: in future we want to have the node id of our moons in our facts
-    systemd.services.zerotierone.serviceConfig.ExecStartPost = lib.mkIf (moonIps != [ ]) (
-      lib.mkAfter [
-        "+${pkgs.writeScript "orbit-moons-by-ip" ''
-          #!${pkgs.python3.interpreter}
-          import json
-          import ipaddress
-          import subprocess
-
-          def compute_member_id(ipv6_addr: str) -> str:
-              addr = ipaddress.IPv6Address(ipv6_addr)
-              addr_bytes = bytearray(addr.packed)
-
-              # Extract the bytes corresponding to the member_id (node_id)
-              node_id_bytes = addr_bytes[10:16]
-              node_id = int.from_bytes(node_id_bytes, byteorder="big")
-
-              member_id = format(node_id, "x").zfill(10)[-10:]
-
-              return member_id
-          def main() -> None:
-              ips = json.loads(${builtins.toJSON (builtins.toJSON moonIps)})
-              for ip in ips:
-                  member_id = compute_member_id(ip)
-                  res = subprocess.run(["zerotier-cli", "orbit", member_id, member_id])
-                  if res.returncode != 0:
-                      print(f"Failed to add {member_id} to orbit")
-          if __name__ == "__main__":
-              main()
-        ''}"
-      ]
-    );
-
+    script = ''
+      source ${(pkgs.callPackage ../../pkgs/minifakeroot { })}/share/minifakeroot/rc
+      python3 ${../../nixosModules/clanCore/zerotier/generate.py} --mode network \
+        --ip "$out/zerotier-ip" \
+        --identity-secret "$out/zerotier-identity-secret" \
+        --network-id "$out/zerotier-network-id"
+    '';
   };
+
+  peerGeneratorDecl = {
+    migrateFact = "zerotier";
+    dependencies = [
+      "zerotier-controller"
+    ];
+    # depends on the network-id. Which is generated by the controller.
+    files = {
+      zerotier-ip = {
+        secret = false;
+      };
+      zerotier-identity-secret = { };
+    };
+    runtimeInputs = [
+      config.services.zerotierone.package
+      pkgs.python3
+    ];
+    script = ''
+      python3 ${../../nixosModules/clanCore/zerotier/generate.py} --mode identity \
+        --ip "$out/zerotier-ip" \
+        --identity-secret "$out/zerotier-identity-secret" \
+        --network-id "$(cat $in/zerotier-controller/zerotier-network-id)"
+    '';
+  };
+
+  genMoonScript = pkgs.runCommand "genmoon" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+    install -Dm755 ${../../nixosModules/clanCore/zerotier/genmoon.py} $out/bin/genmoon
+    patchShebangs $out/bin/genmoon
+  '';
+
+  joinNetworks = [
+    config.clan.core.vars.generators.zerotier-controller.files.zerotier-network-id.value
+  ];
+
+  controllerGenerator = config.clan.core.vars.generators.zerotier-controller;
+  currentGenerator =
+    if isController then controllerGenerator else config.clan.core.vars.generators.zerotier-peer;
+in
+{
+  imports = [
+    ./interface.nix
+    {
+      environment.etc."zerotier/ip".text = currentGenerator.files.zerotier-ip.value;
+    }
+    {
+      systemd.services."zerotierone".serviceConfig.ExecStartPost = lib.mkIf (moonIps != [ ]) (
+        lib.mkAfter [
+          "+${pkgs.writeScript "orbit-moons-by-ip" ''
+            #!${pkgs.python3.interpreter}
+            import json
+            import ipaddress
+            import subprocess
+
+            def compute_member_id(ipv6_addr: str) -> str:
+                addr = ipaddress.IPv6Address(ipv6_addr)
+                addr_bytes = bytearray(addr.packed)
+
+                # Extract the bytes corresponding to the member_id (node_id)
+                node_id_bytes = addr_bytes[10:16]
+                node_id = int.from_bytes(node_id_bytes, byteorder="big")
+
+                member_id = format(node_id, "x").zfill(10)[-10:]
+
+                return member_id
+            def main() -> None:
+                ips = json.loads(${builtins.toJSON (builtins.toJSON moonIps)})
+                for ip in ips:
+                    member_id = compute_member_id(ip)
+                    res = subprocess.run(["zerotier-cli", "orbit", member_id, member_id])
+                    if res.returncode != 0:
+                        print(f"Failed to add {member_id} to orbit")
+            if __name__ == "__main__":
+                main()
+          ''}"
+        ]
+      );
+    }
+  ];
+
+  assertions = [
+    # TODO: This should also be checked via frontmatter constraints
+    {
+      assertion = builtins.length instanceNames == 1;
+      message = "The zerotier module currently only supports one instance per machine, but found ${builtins.toString instanceNames} on machine ${config.clan.core.settings.machine.name}";
+    }
+  ];
+
+  clan.core.vars.imports = [
+    {
+      generators.zerotier-controller = controllerGeneratorDecl;
+    }
+    (lib.mkIf (!isController) {
+      generators.zerotier-peer = peerGeneratorDecl;
+    })
+  ];
+  # Only needed on the controller.
+  # The controller can be a controller in only one of all instances currently
+  environment.etc."zerotier/network-id".text = controllerGenerator.files.zerotier-network-id.value;
+
+  # All machines
+  systemd.network.networks."09-zerotier" = {
+    matchConfig.Name = "zt*";
+    networkConfig = {
+      LLDP = true;
+      MulticastDNS = true;
+      KeepConfiguration = "static";
+    };
+  };
+
+  # TODO: Each machine has only one identity secret ? Even if it has multiple zerotier networks ?
+  # Controller & Peer
+  systemd.services.zerotierone.serviceConfig.ExecStartPre = [
+    "+${pkgs.writeShellScript "init-zerotier" ''
+      # compare hashes of the current identity secret and the one in the config
+      hash1=$(sha256sum /var/lib/zerotier-one/identity.secret | cut -d ' ' -f 1)
+      hash2=$(sha256sum ${(lib.traceVal currentGenerator.files.zerotier-identity-secret).path} | cut -d ' ' -f 1)
+      if [[ "$hash1" != "$hash2" ]]; then
+        echo "Identity secret has changed, backing up old identity to /var/lib/zerotier-one/identity.secret.bac"
+        cp /var/lib/zerotier-one/identity.secret /var/lib/zerotier-one/identity.secret.bac
+        cp /var/lib/zerotier-one/identity.public /var/lib/zerotier-one/identity.public.bac
+        cp ${currentGenerator.files.zerotier-identity-secret.path} /var/lib/zerotier-one/identity.secret
+        zerotier-idtool getpublic /var/lib/zerotier-one/identity.secret > /var/lib/zerotier-one/identity.public
+      fi
+
+      ${lib.optionalString (isController) ''
+        mkdir -p /var/lib/zerotier-one/controller.d/network
+        ln -sfT ${pkgs.writeText "net.json" (builtins.toJSON networkCfg.settings)} /var/lib/zerotier-one/controller.d/network/${networkCfg.networkId}.json
+      ''}
+      ${lib.optionalString (networkCfg.moon.stableEndpoints != [ ]) ''
+        if [[ ! -f /var/lib/zerotier-one/moon.json ]]; then
+          zerotier-idtool initmoon /var/lib/zerotier-one/identity.public > /var/lib/zerotier-one/moon.json
+        fi
+        ${genMoonScript}/bin/genmoon /var/lib/zerotier-one/moon.json ${builtins.toFile "moon.json" (builtins.toJSON networkCfg.moon.stableEndpoints)} /var/lib/zerotier-one/moons.d
+      ''}
+
+      # cleanup old networks
+      if [[ -d /var/lib/zerotier-one/networks.d ]]; then
+        find /var/lib/zerotier-one/networks.d \
+          -type f \
+          -name "*.conf" \
+          -not \( ${
+            lib.concatMapStringsSep " -o " (
+              netId: ''-name "${netId}.conf"''
+            ) config.services.zerotierone.joinNetworks
+          } \) \
+          -delete
+      fi
+    ''}"
+  ];
+
+  # Runs on all machines
+  systemd.services.zerotierone.serviceConfig.ExecStartPost = [
+    "+${pkgs.writeShellScript "configure-interface" ''
+      while ! ${pkgs.netcat}/bin/nc -z localhost 9993; do
+        sleep 0.1
+      done
+      zerotier-cli listnetworks -j | ${pkgs.jq}/bin/jq -r '.[] | [.portDeviceName, .name] | @tsv' \
+        | while IFS=$'\t' read -r portDeviceName name; do
+          if [[ -z "$name" ]] || [[ -z "$portDeviceName" ]]; then
+            continue
+          fi
+          # Execute the command for each element
+          ${pkgs.iproute2}/bin/ip link property add dev "$portDeviceName" altname "$name"
+      done
+
+      ${lib.concatMapStringsSep "\n" (moon: ''
+        zerotier-cli orbit ${moon} ${moon}
+      '') networkCfg.moon.orbitMoons}
+    ''}"
+  ];
+
+  # needs to be allowed on all machines
+  networking.firewall.allowedTCPPorts = [ 9993 ]; # zerotier
+  networking.firewall.allowedUDPPorts = [ 9993 ]; # zerotier
+
+  networking.networkmanager.unmanaged = [ "interface-name:zt*" ];
+
+  services.zerotierone = {
+    enable = true;
+    # Join all the networks from all the instances that are included into this machine
+    joinNetworks = joinNetworks;
+    # The official zerotier tcp relay no longer works: https://github.com/zerotier/ZeroTierOne/issues/2202
+    # So we host our own relay in https://git.clan.lol/clan/clan-infra
+    localConf.settings.tcpFallbackRelay = "65.21.12.51/4443";
+
+    # Override license so that we can build zerotierone without
+    # having to re-import nixpkgs.
+    package = pkgs.callPackage ../../pkgs/zerotierone { };
+  };
+  # Globally shared between all machines.
+  clan.zerotier.networking.networkId = networkId;
+  clan.zerotier.networking.name = instanceName;
 }
