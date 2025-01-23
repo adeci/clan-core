@@ -70,8 +70,30 @@ def allow_member(args: argparse.Namespace) -> None:
     else:
         member_id = args.member_id
     network_id = get_network_id()
+    token_file = ZEROTIER_STATE_DIR.joinpath("authtoken.secret")
+    if not token_file.exists():
+        msg = f"{token_file} file not found. Have you enabled the zerotier controller on this host?"
+        raise ClanError(msg)
     token = ZEROTIER_STATE_DIR.joinpath("authtoken.secret").read_text()
     conn = http.client.HTTPConnection("localhost", 9993)
+
+    # check if the controller is actually running and hosting the network
+    try:
+        conn.request(
+            "GET",
+            "/controller/network",
+            '{"authorized": true}',
+            {"X-ZT1-AUTH": token},
+        )
+        resp = conn.getresponse()
+        hosted_networks = json.loads(resp.read())
+        if network_id not in hosted_networks:
+            msg = f"Controller is not hosting the network {network_id}"
+            raise ClanError(msg)
+    except ConnectionRefusedError as err:
+        msg = "The zerotier controller seems not running. Have you enabled the zerotier controller on this host?"
+        raise ClanError(msg) from err
+
     conn.request(
         "POST",
         f"/controller/network/{network_id}/member/{member_id}",
@@ -81,6 +103,9 @@ def allow_member(args: argparse.Namespace) -> None:
     resp = conn.getresponse()
     if resp.status != 200:
         msg = f"the zerotier daemon returned this error: {resp.status} {resp.reason}"
+        msg += (
+            f"POST: localhost:9993/controller/network/{network_id}/member/{member_id}"
+        )
         raise ClanError(msg)
     print(resp.status, resp.reason)
 
