@@ -1,12 +1,10 @@
 {
-  config,
   lib,
   pkgs,
   ...
 }:
 let
   inherit (lib) mkOption types;
-  networkCfg = config.clan.zerotier.networking;
 in
 {
   options.clan.zerotier =
@@ -16,7 +14,6 @@ in
     {
       excludeHosts = mkOption {
         type = listOf str;
-        default = [ config.clan.core.settings.machine.name ];
         description = "Hosts that should be excluded";
       };
       networkIps = lib.mkOption {
@@ -45,7 +42,6 @@ in
         };
         name = lib.mkOption {
           type = lib.types.str;
-          default = config.clan.core.settings.name;
           defaultText = "config.clan.core.name";
           description = ''
             zerotier network name
@@ -76,21 +72,7 @@ in
         subnet = lib.mkOption {
           type = lib.types.nullOr lib.types.str;
           readOnly = true;
-          default =
-            if networkCfg.networkId == null then
-              null
-            else
-              let
-                part0 = builtins.substring 0 2 networkCfg.networkId;
-                part1 = builtins.substring 2 2 networkCfg.networkId;
-                part2 = builtins.substring 4 2 networkCfg.networkId;
-                part3 = builtins.substring 6 2 networkCfg.networkId;
-                part4 = builtins.substring 8 2 networkCfg.networkId;
-                part5 = builtins.substring 10 2 networkCfg.networkId;
-                part6 = builtins.substring 12 2 networkCfg.networkId;
-                part7 = builtins.substring 14 2 networkCfg.networkId;
-              in
-              "fd${part0}:${part1}${part2}:${part3}${part4}:${part5}${part6}:${part7}99:9300::/88";
+          default = null;
           description = ''
             zerotier subnet
           '';

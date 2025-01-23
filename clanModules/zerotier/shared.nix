@@ -7,10 +7,11 @@
 let
   generators = config.clan.core.vars.generators;
 
-  instanceNames = builtins.attrNames config.clan.inventory.services.zerotier;
+  instances = config.clan.inventory.services.zerotier or { };
+  instanceNames = builtins.attrNames instances;
   instanceName = builtins.head instanceNames;
 
-  zeroTierInstance = config.clan.inventory.services.zerotier.${instanceName};
+  zeroTierInstance = instances.${instanceName};
   roles = zeroTierInstance.roles;
 
   isController = builtins.elem machineName roles.controller.machines;
@@ -160,6 +161,22 @@ in
     }
   ];
 
+  clan.zerotier.networking.name = lib.mkDefault instanceName;
+  clan.zerotier.excludeHosts = lib.mkDefault [ config.clan.core.settings.machine.name ];
+
+  clan.zerotier.networking.subnet =
+    let
+      part0 = builtins.substring 0 2 networkCfg.networkId;
+      part1 = builtins.substring 2 2 networkCfg.networkId;
+      part2 = builtins.substring 4 2 networkCfg.networkId;
+      part3 = builtins.substring 6 2 networkCfg.networkId;
+      part4 = builtins.substring 8 2 networkCfg.networkId;
+      part5 = builtins.substring 10 2 networkCfg.networkId;
+      part6 = builtins.substring 12 2 networkCfg.networkId;
+      part7 = builtins.substring 14 2 networkCfg.networkId;
+    in
+    lib.mkDefault "fd${part0}:${part1}${part2}:${part3}${part4}:${part5}${part6}:${part7}99:9300::/88";
+
   clan.core.vars.imports = [
     {
       generators.zerotier-controller = controllerGeneratorDecl;
@@ -188,7 +205,7 @@ in
     "+${pkgs.writeShellScript "init-zerotier" ''
       # compare hashes of the current identity secret and the one in the config
       hash1=$(sha256sum /var/lib/zerotier-one/identity.secret | cut -d ' ' -f 1)
-      hash2=$(sha256sum ${(lib.traceVal currentGenerator.files.zerotier-identity-secret).path} | cut -d ' ' -f 1)
+      hash2=$(sha256sum ${currentGenerator.files.zerotier-identity-secret.path} | cut -d ' ' -f 1)
       if [[ "$hash1" != "$hash2" ]]; then
         echo "Identity secret has changed, backing up old identity to /var/lib/zerotier-one/identity.secret.bac"
         cp /var/lib/zerotier-one/identity.secret /var/lib/zerotier-one/identity.secret.bac
@@ -264,5 +281,4 @@ in
   };
   # Globally shared between all machines.
   clan.zerotier.networking.networkId = networkId;
-  clan.zerotier.networking.name = instanceName;
 }
