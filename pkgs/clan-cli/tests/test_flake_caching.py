@@ -1,15 +1,30 @@
-from clan_cli.flake import FlakeCacheEntry
+from clan_cli.flake import FlakeCacheEntry, Flake
 from fixtures_flakes import ClanFlake
+from helpers import cli
+import pytest
 
 
-def test_flake_caching(test_flake: ClanFlake) -> None:
+@pytest.mark.with_core
+def test_flake_caching(
+    flake: ClanFlake
+) -> None:
     testdict = {"x": {"y": [123, 345, 456], "z": "bla"}}
     test_cache = FlakeCacheEntry(testdict, [])
     assert test_cache["x"]["z"].value == "bla"
     assert test_cache.is_cached(["x", "z"])
     assert test_cache.select(["x", "y", 0]) == 123
     assert not test_cache.is_cached(["x", "z", 1])
-    # TODO check this, but test_flake is not a  real clan flake (no clan-core, no clanInternals)
-    # cmd.run(["nix", "flake", "lock"], cmd.RunOpts(cwd=test_flake.path))
-    # flake = Flake(str(test_flake.path))
-    # hostnames = flake.select("nixosConfigurations.*.config.networking.hostName")
+    # TODO check this, but flake is not a  real clan flake (no clan-core, no clanInternals)
+    # cli.run(["nix", "flake", "lock"], cmd.RunOpts(cwd=flake.path))
+    m1 = flake.machines["machine1"]
+    m1["nixpkgs"]["hostPlatform"] = "x86_64-linux"
+    # flake.machines["machine2"] = m1.copy()
+    # flake.machines["machine3"] = m1.copy()
+    flake.refresh()
+
+    flake_ = Flake(str(flake.path))
+    import os
+    os.environ["HOME"] = "/home/grmpf"
+    hostnames = flake_.select("nixosConfigurations.*.config.networking.hostName")
+    # assert hostnames == {"machine1": "machine1", "machine2": "machine2", "machine3": "machine3"}
+    assert hostnames == {"machine1": "machine1"}

@@ -292,8 +292,24 @@ class Flake:
             in
               flake.inputs.nixpkgs.legacyPackages.{config["system"]}.writeText "clan-flake-select" (builtins.toJSON [ ({" ".join([f'flake.clanInternals.lib.select "{attr}" flake' for attr in selectors])}) ])
         """
-        build_output = run(nix_build(["--expr", nix_code])).stdout.strip()
+        cmd = nix_build(["--expr", nix_code, '-vvv'])
+        # breakpoint()
+        import subprocess
+        print("running nix build")
+        # breakpoint()
+        # build_output = run(cmd).stdout.strip()
+        import time
+        t = time.time()
+        # breakpoint()
+        import os
+        print(os.environ["HOME"])
+        build_output = subprocess.run(cmd, capture_output=True, text=True).stdout.strip()
+        print(f"ran nix build 1: {time.time() - t}")
+        t = time.time()
+        build_output = subprocess.run(cmd, capture_output=True, text=True).stdout.strip()
+        print(f"ran nix build 2: {time.time() - t}")
         outputs = json.loads(Path(build_output).read_text())
+        print("got output")
         if len(outputs) != len(selectors):
             msg = f"flake_prepare_cache: Expected {len(outputs)} outputs, got {len(outputs)}"
             raise ClanError(msg)
@@ -303,5 +319,7 @@ class Flake:
     def select(self, selector: str) -> Any:
         if not self.cache.is_cached(selector):
             log.info(f"Cache miss for {selector}")
+            print("preparing cache")
             self.prepare_cache([selector])
+            print("cache prepared")
         return self.cache.select(selector)
