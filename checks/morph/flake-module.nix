@@ -23,7 +23,7 @@
       ...
     }:
     {
-      checks = pkgs.lib.mkIf (pkgs.stdenv.isLinux && !pkgs.stdenv.isAarch64) {
+      checks = pkgs.lib.mkIf pkgs.stdenv.isLinux {
         test-morph = (import ../lib/test-base.nix) {
           name = "morph";
 
