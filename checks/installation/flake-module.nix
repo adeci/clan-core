@@ -23,7 +23,6 @@
 
         environment.etc."install-successful".text = "ok";
 
-        nixpkgs.hostPlatform = "x86_64-linux";
         boot.consoleLogLevel = lib.mkForce 100;
         boot.kernelParams = [ "boot.shell_on_fail" ];
 
@@ -89,9 +88,9 @@
     let
       dependencies = [
         self
-        self.nixosConfigurations.test-install-machine.config.system.build.toplevel
-        self.nixosConfigurations.test-install-machine.config.system.build.diskoScript
-        self.nixosConfigurations.test-install-machine.config.system.clan.deployment.file
+        self.clanInternals.machines.${pkgs.hostPlatform.system}.test-install-machine.config.system.build.toplevel
+        self.clanInternals.machines.${pkgs.hostPlatform.system}.test-install-machine.config.system.build.diskoScript
+        self.clanInternals.machines.${pkgs.hostPlatform.system}.test-install-machine.config.system.clan.deployment.file
         pkgs.bash.drvPath
         pkgs.stdenv.drvPath
         pkgs.nixos-anywhere
