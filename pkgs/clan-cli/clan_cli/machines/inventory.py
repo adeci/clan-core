@@ -3,7 +3,7 @@ from pathlib import Path
 
 from clan_cli.cmd import run
 from clan_cli.flake import Flake
-from clan_cli.nix import nix_build, nix_config, nix_test_store
+from clan_cli.nix import nix_build, nix_config
 
 from .machines import Machine
 
@@ -17,9 +17,6 @@ def get_all_machines(flake: Flake, nix_options: list[str]) -> list[Machine]:
             nix_build([f'{flake}#clanInternals.all-machines-json."{system}"'])
         ).stdout.rstrip()
     )
-
-    if test_store := nix_test_store():
-        json_path = test_store.joinpath(*json_path.parts[1:])
 
     machines_json = json.loads(json_path.read_text())
 

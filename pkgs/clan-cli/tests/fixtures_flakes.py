@@ -13,7 +13,6 @@ import age_keys
 import pytest
 from clan_cli.dirs import TemplateType, clan_templates, nixpkgs_source
 from clan_cli.locked_open import locked_open
-from clan_cli.nix import nix_test_store
 from fixture_error import FixtureError
 from root import CLAN_CORE
 from temporary_dir import TEMPDIR
@@ -290,9 +289,6 @@ def create_flake(
     flake_nix = flake / "flake.nix"
     # this is where we would install the sops key to, when updating
     substitute(flake_nix, clan_core_flake, flake)
-    nix_options = []
-    if tmp_store := nix_test_store():
-        nix_options += ["--store", str(tmp_store)]
 
     with locked_open(Path(lock_nix), "w"):
         sp.run(
@@ -303,7 +299,6 @@ def create_flake(
                 flake,
                 "--extra-experimental-features",
                 "nix-command flakes",
-                *nix_options,
             ],
             check=True,
         )

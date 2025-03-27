@@ -15,7 +15,6 @@ from clan_cli.nix import (
     nix_command,
     nix_config,
     nix_metadata,
-    nix_test_store,
 )
 
 log = logging.getLogger(__name__)
@@ -476,18 +475,12 @@ class Flake:
                 builtins.toJSON [ ({" ".join([f"flake.clanInternals.lib.select ''{attr}'' flake" for attr in selectors])}) ]
               )
         """
-        if tmp_store := nix_test_store():
-            nix_options += ["--store", str(tmp_store)]
-            nix_options.append("--impure")
-
         build_output = Path(
             run(
                 nix_build(["--expr", nix_code, *nix_options]), RunOpts(log=Log.NONE)
             ).stdout.strip()
         )
 
-        if tmp_store:
-            build_output = tmp_store.joinpath(*build_output.parts[1:])
         outputs = json.loads(build_output.read_text())
         if len(outputs) != len(selectors):
             msg = f"flake_prepare_cache: Expected {len(outputs)} outputs, got {len(outputs)}"

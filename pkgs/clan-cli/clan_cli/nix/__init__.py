@@ -1,22 +1,18 @@
 import json
 import logging
 import os
-import tempfile
 from pathlib import Path
 from typing import Any
 
 from clan_cli.cmd import run, run_no_stdout
 from clan_cli.dirs import nixpkgs_flake, nixpkgs_source
 from clan_cli.errors import ClanError
-from clan_cli.locked_open import locked_open
 
 log = logging.getLogger(__name__)
 
 
 def nix_command(flags: list[str]) -> list[str]:
     args = ["nix", "--extra-experimental-features", "nix-command flakes", *flags]
-    if store := nix_test_store():
-        args += ["--store", str(store)]
     return args
 
 
@@ -59,21 +55,6 @@ def nix_config() -> dict[str, Any]:
     for key, value in data.items():
         config[key] = value["value"]
     return config
-
-
-def nix_test_store() -> Path | None:
-    store = os.environ.get("CLAN_TEST_STORE", None)
-    lock_nix = os.environ.get("LOCK_NIX", "")
-
-    if not lock_nix:
-        lock_nix = tempfile.NamedTemporaryFile().name  # NOQA: SIM115
-    if not os.environ.get("IN_NIX_SANDBOX"):
-        return None
-    if store:
-        Path.mkdir(Path(store), exist_ok=True)
-        with locked_open(Path(lock_nix), "w"):
-            return Path(store)
-    return None
 
 
 def nix_eval(flags: list[str]) -> list[str]:

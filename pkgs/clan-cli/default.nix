@@ -133,12 +133,13 @@ pythonRuntime.pkgs.buildPythonApplication {
         runCommand "clan-pytest-without-core"
           {
             nativeBuildInputs = testDependencies;
+            requiredSystemFeatures = [ "recursive-nix" ];
+
             closureInfo = pkgs.closureInfo {
               rootPaths = [
                 templateDerivation
               ];
             };
-
           }
           ''
             set -u -o pipefail
@@ -146,12 +147,10 @@ pythonRuntime.pkgs.buildPythonApplication {
             chmod +w -R ./src
             cd ./src
 
-            export NIX_STATE_DIR=$TMPDIR/nix IN_NIX_SANDBOX=1 PYTHONWARNINGS=error
+            export IN_NIX_SANDBOX=1 PYTHONWARNINGS=error
 
             # required to prevent concurrent 'nix flake lock' operations
-            export CLAN_TEST_STORE=$TMPDIR/store
             export LOCK_NIX=$TMPDIR/nix_lock
-            mkdir -p "$CLAN_TEST_STORE/nix/store"
 
             # limit build cores to 16
             jobs="$((NIX_BUILD_CORES>16 ? 16 : NIX_BUILD_CORES))"
@@ -159,15 +158,24 @@ pythonRuntime.pkgs.buildPythonApplication {
             python -m pytest -m "not impure and not with_core" -n $jobs ./tests
             touch $out
           '';
-    }
-    // lib.optionalAttrs (!stdenv.isDarwin) {
       clan-pytest-with-core =
         runCommand "clan-pytest-with-core"
           {
             nativeBuildInputs = testDependencies;
+            requiredSystemFeatures = [ "recursive-nix" ];
+
+            closureInfo = pkgs.closureInfo {
+              rootPaths = [
+                templateDerivation
+              ];
+            };
+
             buildInputs = [
               pkgs.bash
               pkgs.coreutils
+              pkgs.jq.dev
+              pkgs.stdenv
+              pkgs.stdenvNoCC
               # looks like Nix 2.26 fixes the profile creation race condition we were running into on Nix 2.24
               # Switch this back to `pkgs.nix` when `pkgs.nix` is Nix 2.26+
               (
@@ -177,16 +185,6 @@ pythonRuntime.pkgs.buildPythonApplication {
                 pkgs.nixVersions.latest
               )
             ];
-            closureInfo = pkgs.closureInfo {
-              rootPaths = [
-                templateDerivation
-                pkgs.bash
-                pkgs.coreutils
-                pkgs.jq.dev
-                pkgs.stdenv
-                pkgs.stdenvNoCC
-              ];
-            };
           }
           ''
             set -u -o pipefail
@@ -195,16 +193,10 @@ pythonRuntime.pkgs.buildPythonApplication {
             cd ./src
 
             export CLAN_CORE_PATH=${clan-core-path}
-            export NIX_STATE_DIR=$TMPDIR/nix
             export IN_NIX_SANDBOX=1
             export PYTHONWARNINGS=error
-            export CLAN_TEST_STORE=$TMPDIR/store
             # required to prevent concurrent 'nix flake lock' operations
             export LOCK_NIX=$TMPDIR/nix_lock
-            mkdir -p "$CLAN_TEST_STORE/nix/store"
-            mkdir -p "$CLAN_TEST_STORE/nix/var/nix/gcroots"
-            xargs cp --recursive --target "$CLAN_TEST_STORE/nix/store"  < "$closureInfo/store-paths"
-            nix-store --load-db --store "$CLAN_TEST_STORE" < "$closureInfo/registration"
 
             # limit build cores to 16
             jobs="$((NIX_BUILD_CORES>16 ? 16 : NIX_BUILD_CORES))"

@@ -10,7 +10,7 @@ from clan_cli.errors import ClanError
 from clan_cli.facts import public_modules as facts_public_modules
 from clan_cli.facts import secret_modules as facts_secret_modules
 from clan_cli.flake import Flake
-from clan_cli.nix import nix_config, nix_test_store
+from clan_cli.nix import nix_config
 from clan_cli.ssh.host import Host
 from clan_cli.ssh.host_key import HostKeyCheck
 from clan_cli.ssh.parse import parse_deployment_address
@@ -243,8 +243,6 @@ class Machine:
 
         output = self.nix("build", attr, nix_options)
         output = Path(output)
-        if tmp_store := nix_test_store():
-            output = tmp_store.joinpath(*output.parts[1:])
         assert output.exists(), f"The output {output} doesn't exist"
         if isinstance(output, Path):
             return output
