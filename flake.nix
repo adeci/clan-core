@@ -54,6 +54,43 @@
       {
         clan = {
           meta.name = "clan-core";
+
+          inventory.modules.zerotier-redux = ./clanModules/zerotier-redux/default.nix;
+          modules.zerotier-redux = ./clanModules/zerotier-redux/default.nix;
+
+          inventory.machines = {
+            "jon" = { };
+          };
+
+          machines.jon = {
+            nixpkgs.hostPlatform = "x86_64-linux";
+            users.users.jon = {
+              isNormalUser = true;
+              password = "1234";
+              extraGroups = [ "wheel" ];
+            };
+            # clan.core.networking.zerotier.controller.enable = true;
+          };
+
+          inventory.instances = {
+            "test" = {
+              module.name = "zerotier-redux";
+
+              roles.controller.machines."jon" = { };
+              roles.peer.machines."jon" = { };
+              # roles.moon.machines."jon" = {
+              #   # settings.stableEndpoints = [  ];
+              # };
+              roles.controller.settings = {
+                network = {
+                  # public = true;
+                  # settings = {
+                  #   authTokens = [ "myToken" ];
+                  # };
+                };
+              };
+            };
+          };
         };
 
         systems = import systems;

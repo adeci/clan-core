@@ -124,6 +124,11 @@ let
   # Extend evalModules result by a module, returns .config.
   extendEval = eval: m: (eval.extendModules { modules = lib.toList m; }).config;
 
+  # Extend evalModules result by a module, returns .config.
+  extendEval =
+    eval: m:
+    (eval.extendModules { modules = lib.toList m; } ).config;
+
   /**
     Apply the settings to the instance
 
@@ -270,7 +275,15 @@ in
               in
               {
                 options.interface = mkOption {
-                  type = types.deferredModule;
+                  type = types.deferredModuleWith {
+                    staticModules = [
+                      {
+                        # TODO: find a nice way to pass this through the interface
+                        # Maybe the perMachine, perInstance should inject a static module that pulls out the pkgs and system from config.
+                        # _module.args.pkgs = import <nixpkgs> { system = "x86_64-linux"; };
+                      }
+                    ];
+                  };
                   # TODO: Default to an empty module
                   # need to test that an the empty module can be evaluated to empty settings
                   default = { };

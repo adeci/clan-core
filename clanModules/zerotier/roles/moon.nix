@@ -14,5 +14,7 @@
       [ 1.2.3.4" "10.0.0.3/9993" "2001:abcd:abcd::3/9993" ]
     '';
   };
-  config.clan.zerotier.networking.moon.stableEndpoints = config.clan.zerotier.moon.stableEndpoints;
+  # TODO, we want to remove these options from clanCore
+  config.clan.core.networking.zerotier.moon.stableEndpoints =
+    config.clan.zerotier.moon.stableEndpoints;
 }
