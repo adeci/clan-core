@@ -8,7 +8,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, Any
 
-from clan_cli.clan_uri import FlakeId
 from clan_cli.cmd import RunOpts, run
 from clan_cli.completions import (
     add_dynamic_completer,
@@ -311,7 +310,7 @@ def get_closure(
     return minimal_closure([generator_name], generators)
 
 
-def _foreign_facts_file_exists(
+def _migration_file_exists(
     machine: "Machine",
     generator: Generator,
     fact_name: str,
@@ -339,8 +338,7 @@ def _foreign_facts_file_exists(
     return False
 
 
-# Lib function used in migrations
-def migrate_file(
+def _migrate_file(
     machine: "Machine",
     generator: Generator,
     var_name: str,
@@ -381,9 +379,9 @@ def _migrate_files(
     not_found = []
     files_to_commit = []
     for file in generator.files:
-        if _foreign_facts_file_exists(machine, generator, file.name):
+        if _migration_file_exists(machine, generator, file.name):
             assert generator.migrate_fact is not None
-            files_to_commit += migrate_file(
+            files_to_commit += _migrate_file(
                 machine, generator, file.name, generator.migrate_fact, file.name
             )
         else:
@@ -398,42 +396,39 @@ def _migrate_files(
     )
 
 
-def _check_can_migrate(machine: "Machine", generator: Generator) -> bool:
+def _check_can_migrate(
+    machine: "Machine",
+    generator: Generator,
+) -> bool:
     service_name = generator.migrate_fact
     if not service_name:
         return False
     # ensure that none of the generated vars already exist in the store
     all_files_missing = True
     all_files_present = True
-    spurious_files = []
     for file in generator.files:
         if file.secret:
             if machine.secret_vars_store.exists(generator, file.name):
                 all_files_missing = False
-                path = machine.secret_vars_store.rel_dir(generator, file.name)
-                spurious_files.append(path)
             else:
                 all_files_present = False
         else:
             if machine.public_vars_store.exists(generator, file.name):
-                path = machine.public_vars_store.rel_dir(generator, file.name)
-                spurious_files.append(path)
                 all_files_missing = False
             else:
                 all_files_present = False
 
     if not all_files_present and not all_files_missing:
-        msg = f"Cannot migrate var for generator {generator.name} as some files already exist in the store."
-        msg += "\n".join(str(spurious_files))
+        msg = f"Cannot migrate facts for generator {generator.name} as some files already exist in the store"
         raise ClanError(msg)
     if all_files_present:
         # all files already migrated, no need to run migration again
         return False
 
-    # ensure that all files can be migrated (the file exists in the corresponding fact store)
+    # ensure that all files can be migrated (exists in the corresponding fact store)
     return bool(
         all(
-            _foreign_facts_file_exists(machine, generator, file.name)
+            _migration_file_exists(machine, generator, file.name)
             for file in generator.files
         )
     )
@@ -463,41 +458,11 @@ def generate_vars_for_machine(
             msg += f"Secret vars store: {sec_healtcheck_msg}"
         raise ClanError(msg)
 
-    closure_before_migrations = get_closure(machine, generator_name, regenerate)
-    if len(closure_before_migrations) == 0:
-        return False
-
-    controller_generator = next(
-        (g for g in closure_before_migrations if g.name == "zerotier-controller"), None
-    )
-
-    peer_generator = next(
-        (g for g in closure_before_migrations if g.name == "zerotier-peer"), None
-    )
-    if controller_generator or peer_generator:
-        # Migrate zerotier service as a whole
-        migrate_zerotier(machine.flake, current_machine=machine)
-
     closure = get_closure(machine, generator_name, regenerate)
     if len(closure) == 0:
         return False
-
     for generator in closure:
-        # Zerotier migrations are handled separately
-        if generator.name in ["zerotier-controller", "zerotier-peer"]:
-            # Just execute the zerotier generators
-            # Migration is handled separately
-            execute_generator(
-                machine=machine,
-                generator=generator,
-                secret_vars_store=machine.secret_vars_store,
-                public_vars_store=machine.public_vars_store,
-                prompt_values=_ask_prompts(generator),
-            )
-            continue
-
         if _check_can_migrate(machine, generator):
-            # Default migration
             _migrate_files(machine, generator)
         else:
             execute_generator(
@@ -599,117 +564,3 @@ def register_generate_parser(parser: argparse.ArgumentParser) -> None:
     )
 
     parser.set_defaults(func=generate_command)
-
-
-########################
-# Dedicated Migrations #
-########################
-
-
-def migrate_generator(machine: "Machine", generator: Generator) -> list[Path]:
-    files_to_commit = []
-    for file in generator.files:
-        files_to_commit += migrate_file(
-            machine, generator, file.name, "zerotier-peer", file.name
-        )
-    return files_to_commit
-
-
-def migrate_zerotier(
-    clan_dir: FlakeId,
-    current_machine: "Machine | None",
-    requires_user_confirmation: bool = True,
-) -> None:
-    from clan_cli.facts.list import get_public_facts_store
-
-    if current_machine:
-        machine_facts_store = get_public_facts_store(current_machine)
-        if not machine_facts_store.exists("", "zerotier-ip"):
-            # migration doesn't need to run
-            print("Zerotier facts not found. Skipping ...")
-            return
-        # Check if the vars are already up to date
-        if check_vars(current_machine, generator_name="zerotier-peer"):
-            current_machine.info("Zerotier vars already migrated. Skipping ...")
-            return
-
-    if requires_user_confirmation:
-        answer = input(
-            f"""
-Requesting to migrate all 'zerotier' facts to vars for ALL machines in the flake '{clan_dir.path}'.
-
-This step can also be run in isolation via: 'clan migrate zerotier' at any time.
-
-Do you want to run the automatic zerotier migration now (y/n) ?
-    """
-        )
-        if answer.lower() != "y":
-            print("No. Skipping ...")
-            return
-
-    print("Starting zerotier migration for all machines ...")
-
-    # Collect all files to commit per machine
-    # The commit them all at once
-    # Or revert all of them if any of the migrations fail
-    files_to_commit_per_machine = {}
-
-    for machine in get_all_machines(clan_dir, []):
-        machine_facts_store = get_public_facts_store(machine)
-
-        # All machines with zerotier should have a zerotier-ip fact. (old)
-        # If the machine doesnt have the fact, then we dont need to migrate it
-        if not machine_facts_store.exists("", "zerotier-ip"):
-            log.info(
-                f"Skipping machine: zerotier-ip fact not found for '{machine.name}'. No need to run migration"
-            )
-            continue
-
-        log.info(f"Migrating zerotier for: '{machine.name}'")
-
-        closure = get_closure(
-            machine,
-            generator_name=None,
-            regenerate=False,
-        )
-        controller_generator = next(
-            (g for g in closure if g.name == "zerotier-controller"), None
-        )
-        peer_generator = next((g for g in closure if g.name == "zerotier-peer"), None)
-
-        files_to_commit = []
-        # The machine is a zerotier-peer
-        if peer_generator:
-            log.info("Migrating zerotier-peer ...")
-            if _check_can_migrate(machine, peer_generator):
-                files_to_commit += migrate_generator(machine, peer_generator)
-
-        # The machine is a zerotier-controller
-        elif controller_generator:
-            log.info("Migrating zerotier-controller ...")
-            if _check_can_migrate(machine, controller_generator):
-                files_to_commit += migrate_generator(machine, controller_generator)
-        else:
-            log.info(f"No zerotier vars missing for {machine.name}. Skipping ...")
-            continue
-
-        files_to_commit_per_machine[machine.name] = files_to_commit
-
-        for machine_name in files_to_commit_per_machine:
-            machine.debug("Committing files ...")
-            msg = (
-                f"[Zerotier service]: migrated facts to vars for machine {machine.name}"
-            )
-            msg += " (peer/moon)" if peer_generator else " (controller)"
-            msg += "\n"
-            msg += "\n".join(
-                [
-                    # Remove the flake dir from the file name
-                    f"- {str(file_name).replace(str(machine.flake_dir), '')}"
-                    for file_name in files_to_commit_per_machine[machine_name]
-                ]
-            )
-
-            commit_files(
-                files_to_commit_per_machine[machine_name], machine.flake_dir, msg
-            )

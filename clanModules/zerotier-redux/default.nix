@@ -436,6 +436,15 @@
           };
 
           config = {
+            clan.core.vars.generators.zerotier = {
+              files.foo = {
+                secret = false;
+              };
+              script = ''
+                echo hello > $out/foo
+              '';
+            };
+
             clan.core.state.zerotier.folders = lib.mkIf (builtins.elem "controller" machine.roles) [
               "/var/lib/zerotier-one"
             ];
