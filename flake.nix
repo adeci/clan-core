@@ -55,12 +55,9 @@
         clan = {
           meta.name = "clan-core";
 
-          inventory.modules.zerotier-redux = ./clanModules/zerotier-redux/default.nix;
+          # Expose the module
           modules.zerotier-redux = ./clanModules/zerotier-redux/default.nix;
 
-          inventory.machines = {
-            "jon" = { };
-          };
 
           machines.jon = {
             nixpkgs.hostPlatform = "x86_64-linux";
@@ -71,7 +68,10 @@
             };
             # clan.core.networking.zerotier.controller.enable = true;
           };
-
+          inventory.modules.zerotier-redux = ./clanModules/zerotier-redux/default.nix;
+          inventory.machines = {
+            "jon" = { };
+          };
           inventory.instances = {
             "test" = {
               module.name = "zerotier-redux";

@@ -47,6 +47,7 @@ in
             zt-tcp-relay = import ./zt-tcp-relay nixosTestArgs;
             postgresql = import ./postgresql nixosTestArgs;
             wayland-proxy-virtwl = import ./wayland-proxy-virtwl nixosTestArgs;
+            zerotier = import ./zerotier nixosTestArgs;
           };
 
           flakeOutputs =
