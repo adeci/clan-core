@@ -6,6 +6,12 @@ let
 in
 {
   options = {
+    distributedServices = mkOption {
+      type = types.raw;
+      readOnly = true;
+      internal = true;
+      visible = false;
+    };
     directory = mkOption {
       type = types.path;
     };

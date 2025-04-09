@@ -124,11 +124,6 @@ let
   # Extend evalModules result by a module, returns .config.
   extendEval = eval: m: (eval.extendModules { modules = lib.toList m; }).config;
 
-  # Extend evalModules result by a module, returns .config.
-  extendEval =
-    eval: m:
-    (eval.extendModules { modules = lib.toList m; } ).config;
-
   /**
     Apply the settings to the instance
 

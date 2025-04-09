@@ -50,14 +50,13 @@
         ;
     in
     flake-parts.lib.mkFlake { inherit inputs; } (
-      { ... }:
+      { self, lib, ... }:
       {
         clan = {
           meta.name = "clan-core";
 
           # Expose the module
           modules.zerotier-redux = ./clanModules/zerotier-redux/default.nix;
-
 
           machines.jon = {
             nixpkgs.hostPlatform = "x86_64-linux";
@@ -68,7 +67,7 @@
             };
             # clan.core.networking.zerotier.controller.enable = true;
           };
-          inventory.modules.zerotier-redux = ./clanModules/zerotier-redux/default.nix;
+          inventory.modules.zerotier-redux = lib.modules.importApply ./clanModules/zerotier-redux/default.nix { inherit (self) packages; };
           inventory.machines = {
             "jon" = { };
           };

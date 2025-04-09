@@ -42,6 +42,7 @@ let
   # { ${machineName} :: Config }
   inventoryClass = (
     buildInventory {
+      flakeInputs = config.self.inputs;
       inherit inventory directory;
       flakeInputs = config.self.inputs;
     }
@@ -161,6 +162,8 @@ in
           lib.filterAttrs (_: t: t == "directory") (builtins.readDir "${directory}/machines")
         )
       );
+      # Import the distribute services
+      # { imports = config.clanInternals.distributedServices.allMachines.${name} or [ ]; }
     }
     {
       inventory.machines = lib.mapAttrs (_n: _: { }) config.machines;

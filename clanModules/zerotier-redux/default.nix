@@ -1,4 +1,4 @@
-{ vendorFlake, ... }:
+{ packages }: { ... }:
 {
   _class = "clan.service";
   manifest.name = "@clan-core/zerotier";
@@ -24,15 +24,20 @@
         nixosModule =
           {
             lib,
-            config,
             pkgs,
             ...
           }:
           let
-            genMoonScript = pkgs.runCommand "genmoon" { nativeBuildInputs = [ pkgs.python3 ]; meta.mainProgram = "genmoon"; } ''
-              install -Dm755 ${./genmoon.py} $out/bin/genmoon
-              patchShebangs $out/bin/genmoon
-            '';
+            genMoonScript =
+              pkgs.runCommand "genmoon"
+                {
+                  nativeBuildInputs = [ pkgs.python3 ];
+                  meta.mainProgram = "genmoon";
+                }
+                ''
+                  install -Dm755 ${./genmoon.py} $out/bin/genmoon
+                  patchShebangs $out/bin/genmoon
+                '';
           in
           {
             systemd.services.zerotierone.serviceConfig.ExecStartPre = lib.mkAfter [
@@ -67,7 +72,7 @@
           let
             facts = config.clan.core.facts.services.zerotier.public;
 
-            moons = lib.attrNames (roles.moon.machines or {});
+            moons = lib.attrNames (roles.moon.machines or { });
             moonIps = builtins.foldl' (
               ips: name:
               if
@@ -199,7 +204,6 @@
       {
         instanceName,
         extendSettings,
-        machine,
         ...
       }:
       {
@@ -280,7 +284,7 @@
                 pkgs.python3
               ];
               generator.script = ''
-                source ${(vendorFlake.packages.${pkgs.system}.minifakeroot)}/share/minifakeroot/rc
+                source ${(packages.${pkgs.system}.minifakeroot)}/share/minifakeroot/rc
                 python3 ${./generate.py} --mode network \
                   --ip "$facts/zerotier-ip" \
                   --identity-secret "$secrets/zerotier-identity-secret" \
@@ -325,7 +329,6 @@
               {
                 lib,
                 config,
-                pkgs,
                 ...
               }:
               {
@@ -453,7 +456,7 @@
             ];
 
             # TODO: Maybe don't use our zerotierone and people should set `allowUnfree`?
-            services.zerotierone.package = lib.mkDefault (vendorFlake.packages.${pkgs.system}.zerotierone);
+            services.zerotierone.package = lib.mkDefault (packages.${pkgs.system}.zerotierone);
 
             networking.firewall.allowedTCPPorts = [ 9993 ];
             networking.firewall.allowedUDPPorts = [ 9993 ];
@@ -467,7 +470,7 @@
                 }
               ]
               # TODO: remove this assertion once we start verifying constraints again
-              ++ (lib.mapAttrsToList (instanceName: instance: {
+              ++ (lib.mapAttrsToList (_instanceName: instance: {
                 assertion = builtins.length (lib.attrNames instance.roles.controller.machines) == 1;
                 message = "ZeroTier only supports one controller per network";
               }) instances);

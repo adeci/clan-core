@@ -1,7 +1,6 @@
 (import ../lib/test-inventory.nix) (
   { self, lib, ... }:
   let
-
     machines = [
       "peer1"
       "controller1"
@@ -15,17 +14,20 @@
         machines = lib.genAttrs machines (_: { });
 
         modules = {
-          zerotier-redux = ../../clanModules/zerotier-redux/default.nix;
+          zerotier-redux = lib.modules.importApply ../../clanModules/zerotier-redux/default.nix { inherit (self) packages; };
         };
 
         instances = {
           "test" = {
             module.name = "zerotier-redux";
-            roles.controller.machines."jon" = { };
-            roles.peer.machines."jon" = { };
+            module.input = null;
+
+            roles.controller.machines."controller1" = { };
+            # TODO: figure out how to implizitly make all machines peers by default
+            roles.peer.machines."controller1" = { };
+            roles.peer.machines."peer1" = { };
           };
         };
-
       };
       directory = ./.;
     };
