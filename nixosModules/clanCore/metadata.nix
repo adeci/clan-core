@@ -117,7 +117,6 @@ in
               options = {
                 name = mkOption {
                   type = types.str;
-                  readOnly = true;
                   description = ''
                     the name of the machine
                   '';
