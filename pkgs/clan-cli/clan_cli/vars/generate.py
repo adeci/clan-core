@@ -41,6 +41,7 @@ class Generator:
     share: bool = False
     prompts: list[Prompt] = field(default_factory=list)
     dependencies: list[str] = field(default_factory=list)
+    has_validation_hash: bool = False
 
     migrate_fact: str | None = None
 
@@ -64,6 +65,7 @@ class Generator:
             dependencies=data["dependencies"],
             migrate_fact=data["migrateFact"],
             prompts=[Prompt.from_json(p) for p in data["prompts"].values()],
+            has_validation_hash=data.get("validationHash") is not None,
         )
 
     def final_script(self) -> Path:
@@ -75,6 +77,9 @@ class Generator:
 
     def validation(self) -> str | None:
         assert self._machine is not None
+        # if module initially haven't set a validation hash, we don't re-check on subsequent runs
+        if not self.has_validation_hash:
+            return None
         return self._machine.eval_nix(
             f'config.clan.core.vars.generators."{self.name}".validationHash'
         )
@@ -251,6 +256,7 @@ def execute_generator(
                 public_changed = True
             if file_path:
                 files_to_commit.append(file_path)
+
             validation = generator.validation()
             if validation is not None:
                 if public_changed:

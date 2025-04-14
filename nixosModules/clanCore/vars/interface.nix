@@ -126,6 +126,8 @@ in
               description = ''
                 A set of values that invalidate the generated values.
                 If any of these values change, the generated values will be re-generated.
+                Make sure that your generator always has a non-null value for this option
+                if it should be taken into account. Otherwise cache-invalidation will be skipped.
                 Lists are not allowed as of now due to potential ordering issues
               '';
               default = null;
