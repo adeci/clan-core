@@ -49,7 +49,7 @@
         ;
     in
     flake-parts.lib.mkFlake { inherit inputs; } (
-      { self, lib, ... }:
+      { self, ... }:
       {
         clan = {
           meta.name = "clan-core";

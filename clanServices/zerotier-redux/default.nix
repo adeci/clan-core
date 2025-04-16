@@ -338,6 +338,10 @@
                     inherit (lib.types) listOf str;
                   in
                   {
+                    enabledViaInventory = lib.mkOption {
+                      readOnly = true;
+                      default = true;
+                    };
                     excludeHosts = lib.mkOption {
                       type = listOf str;
                       default = [ config.clan.core.settings.machine.name ];
