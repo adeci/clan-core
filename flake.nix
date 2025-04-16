@@ -38,7 +38,6 @@
     inputs@{
       flake-parts,
       nixpkgs,
-      self,
       systems,
       ...
     }:
@@ -67,7 +66,9 @@
             };
             # clan.core.networking.zerotier.controller.enable = true;
           };
-          inventory.modules.zerotier-redux = lib.modules.importApply ./clanModules/zerotier-redux/default.nix { inherit (self) packages; };
+          inventory.modules.zerotier-redux =
+            lib.modules.importApply ./clanModules/zerotier-redux/default.nix
+              { inherit (self) packages; };
           inventory.machines = {
             "jon" = { };
           };

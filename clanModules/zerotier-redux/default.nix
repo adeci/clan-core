@@ -1,4 +1,5 @@
-{ packages }: { ... }:
+{ packages }:
+{ ... }:
 {
   _class = "clan.service";
   manifest.name = "@clan-core/zerotier";
