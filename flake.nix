@@ -38,6 +38,7 @@
     inputs@{
       flake-parts,
       nixpkgs,
+      self,
       systems,
       ...
     }:
@@ -49,45 +50,10 @@
         ;
     in
     flake-parts.lib.mkFlake { inherit inputs; } (
-      { self, ... }:
+      { ... }:
       {
         clan = {
           meta.name = "clan-core";
-
-          machines.jon = {
-            nixpkgs.hostPlatform = "x86_64-linux";
-            users.users.jon = {
-              isNormalUser = true;
-              password = "1234";
-              extraGroups = [ "wheel" ];
-            };
-            # clan.core.networking.zerotier.controller.enable = true;
-          };
-          # inventory.modules.zerotier-redux =
-          #   lib.modules.importApply ./clanModules/zerotier-redux/default.nix
-          #     { inherit (self) packages; };
-          inventory.machines = {
-            "jon" = { };
-          };
-          inventory.instances = {
-            "test" = {
-              module.name = "zerotier-redux";
-
-              roles.controller.machines."jon" = { };
-              roles.peer.machines."jon" = { };
-              # roles.moon.machines."jon" = {
-              #   # settings.stableEndpoints = [  ];
-              # };
-              roles.controller.settings = {
-                network = {
-                  # public = true;
-                  # settings = {
-                  #   authTokens = [ "myToken" ];
-                  # };
-                };
-              };
-            };
-          };
         };
 
         systems = import systems;
@@ -97,7 +63,6 @@
           filter pathExists [
             ./checks/flake-module.nix
             ./clanModules/flake-module.nix
-            ./clanServices/flake-module.nix
             ./devShell.nix
             ./docs/nix/flake-module.nix
             ./flakeModules/flake-module.nix

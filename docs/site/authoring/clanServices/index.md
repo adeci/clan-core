@@ -191,7 +191,7 @@ Passing any dependencies in general must be done manually.
 
 In general we found the following two best practices:
 
-1. Using `lib.modules.importApply`
+1. Using `lib.importApply`
 2. Using a wrapper module
 
 Both have pros and cons. After all using `importApply` is the easier one, but might be more limiting sometimes.
@@ -221,10 +221,10 @@ outputs = inputs: flake-parts.lib.mkFlake { inherit inputs; } ({self, lib, ...}:
     # ...
     clan = {
         # Register the module
-        inventory.modules."@hsjobeki/messaging" = lib.modules.importApply ./service-modules/messaging.nix { inherit self; };
+        inventory.modules."@hsjobeki/messaging" = lib.importApply ./service-modules/messaging.nix { inherit self; };
 
         # Expose the module for downstream users, 'self' would always point to this flake.
-        modules."@hsjobeki/messaging" = lib.modules.importApply ./service-modules/messaging.nix { inherit self; };
+        modules."@hsjobeki/messaging" = lib.importApply ./service-modules/messaging.nix { inherit self; };
     };
 })
 ```
