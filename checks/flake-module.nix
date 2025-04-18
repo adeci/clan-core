@@ -52,6 +52,7 @@ in
             mumble = import ./mumble nixosTestArgs;
             dummy-inventory-test = import ./dummy-inventory-test nixosTestArgs;
             data-mesher = import ./data-mesher nixosTestArgs;
+            wireguard = import ./wireguard nixosTestArgs;
             syncthing = import ./syncthing nixosTestArgs;
           };
 
