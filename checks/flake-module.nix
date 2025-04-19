@@ -47,6 +47,7 @@ in
             syncthing = import ./syncthing nixosTestArgs;
             zt-tcp-relay = import ./zt-tcp-relay nixosTestArgs;
             postgresql = import ./postgresql nixosTestArgs;
+            update = import ./update nixosTestArgs;
             wayland-proxy-virtwl = import ./wayland-proxy-virtwl nixosTestArgs;
           };
 
