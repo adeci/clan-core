@@ -18,7 +18,7 @@
 
       options.extraIPs = lib.mkOption {
         type = lib.types.listOf lib.types.str;
-        default = [];
+        default = [ ];
         example = [ "192.168.2.0/24" ];
         description = ''
           IP address of the host.
@@ -54,7 +54,9 @@
                   allowedIPs = [ "192.168.8.0/24" ];
 
                   # Server IP and port
-                  endpoint = roles.controller.machines."${name}".settings.endpoint;
+                  endpoint = "${roles.controller.machines."${name}".settings.endpoint}:${
+                    toString roles.controller.machines."${name}".settings.port
+                  }";
 
                   # Send keepalives every 25 seconds to keep NAT tables alive
                   persistentKeepalive = 25;
@@ -71,9 +73,18 @@
     interface = {
       options.endpoint = lib.mkOption {
         type = lib.types.str;
-        example = "vpn.clan.lol:51820";
+        example = "vpn.clan.lol";
         description = ''
           Endpoint where the contoller can be reached
+        '';
+      };
+
+      options.port = lib.mkOption {
+        type = lib.types.int;
+        example = 51820;
+        default = 51820;
+        description = ''
+          Port for the endpoint, where the contoller can be reached
         '';
       };
 
@@ -98,7 +109,8 @@
           {
 
             # Enable ip forwarding, so wireguard peers can reach eachother
-            boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
+            # TODO bug?
+            # boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
 
             networking.wireguard.interfaces."${instanceName}" = {
 
