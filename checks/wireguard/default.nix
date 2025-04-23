@@ -29,6 +29,18 @@ clanLib.test.makeTestClan {
 
           instances = {
 
+            #      wg-test-two
+            #    ┌──────────────┐
+            #    │              │                               │ wg-test-one │ wg-test-two │ endpoint
+            #    │              ▼                  ─────────────┼─────────────┼─────────────┼────────────
+            #    │   ┌──────► peer1 ◄───────┐       controller1 │ 192.168.8.1 │ 192.168.9.1 │ 192.168.1.1
+            #    │   │                      │       controller2 │ 192.168.8.2 │     ---     │ 192.168.1.2
+            #    ▼   ▼                      ▼       peer1       │ 192.168.8.3 │ 192.168.9.3 │     ---
+            # controller1 ◄──────────► controller2  peer2       │ 182.168.8.4 │     ---     │     ---
+            #        ▲                      ▲
+            #        │                      │
+            #        └──────► peer2 ◄───────┘
+
             wg-test-one = {
 
               module.name = "@clan/wireguard";
@@ -104,8 +116,6 @@ clanLib.test.makeTestClan {
       #   - wg-test-one on all machines
       #   - wg-test-two on controllerA and peer1
       # - peers are correctly set up
-
-
 
       testScript = ''
         start_all()
