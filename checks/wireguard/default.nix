@@ -46,20 +46,20 @@ clanLib.test.makeTestClan {
               module.name = "@clan/wireguard";
 
               roles.controller.machines."controller1".settings = {
-                ip = "192.168.8.1";
+                # ip = "192.168.8.1";
                 endpoint = "192.168.1.1";
                 port = 51920;
               };
 
               roles.controller.machines."controller2".settings = {
-                ip = "192.168.8.2";
+                # ip = "192.168.8.2";
                 endpoint = "192.168.1.2";
                 port = 51921;
               };
 
               roles.peer.machines = {
-                peer1.settings.ip = "192.168.8.3";
-                peer2.settings.ip = "192.168.8.4";
+                peer1 = {};
+                peer2 = {};
               };
             };
 
@@ -68,13 +68,13 @@ clanLib.test.makeTestClan {
               module.name = "@clan/wireguard";
 
               roles.controller.machines."controller1".settings = {
-                ip = "192.168.9.1";
+                # ip = "192.168.9.1";
                 endpoint = "192.168.1.1";
                 port = 51922;
               };
 
               roles.peer.machines = {
-                peer1.settings.ip = "192.168.9.3";
+                peer1 = {};
               };
             };
           };

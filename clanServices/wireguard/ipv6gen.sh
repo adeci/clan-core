@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 # Generate a ULA IPv6 prefix from a string
 # Usage: generate_ula_prefix "string" [prefix_length]
 generate_ula_prefix() {
