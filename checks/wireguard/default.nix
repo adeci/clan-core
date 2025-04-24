@@ -29,54 +29,57 @@ clanLib.test.makeTestClan {
 
           instances = {
 
-            #      wg-test-two
-            #    ┌──────────────┐
-            #    │              │                               │ wg-test-one │ wg-test-two │ endpoint
-            #    │              ▼                  ─────────────┼─────────────┼─────────────┼────────────
-            #    │   ┌──────► peer1 ◄───────┐       controller1 │ 192.168.8.1 │ 192.168.9.1 │ 192.168.1.1
-            #    │   │                      │       controller2 │ 192.168.8.2 │     ---     │ 192.168.1.2
-            #    ▼   ▼                      ▼       peer1       │ 192.168.8.3 │ 192.168.9.3 │     ---
-            # controller1 ◄──────────► controller2  peer2       │ 182.168.8.4 │     ---     │     ---
-            #        ▲                      ▲
-            #        │                      │
-            #        └──────► peer2 ◄───────┘
+            /*
+                            wg-test-one
+              ┌───────────────────────────────┐
+              │            ◄─────────────     │
+              │ controller2              controller1
+              │    ▲       ─────────────►    ▲     ▲
+              │    │ │ │ │                 │ │   │ │
+              │    │ │ │ │                 │ │   │ │
+              │    │ │ │ │                 │ │   │ │
+              │    │ │ │ └───────────────┐ │ │   │ │
+              │    │ │ └──────────────┐  │ │ │   │ │
+              │      ▼                │  ▼ ▼     ▼
+              └─► peer2               │  peer1  peer3
+                                      │          ▲
+                                      └──────────┘
+            */
 
             wg-test-one = {
 
               module.name = "@clan/wireguard";
 
               roles.controller.machines."controller1".settings = {
-                # ip = "192.168.8.1";
                 endpoint = "192.168.1.1";
                 port = 51920;
               };
 
               roles.controller.machines."controller2".settings = {
-                # ip = "192.168.8.2";
                 endpoint = "192.168.1.2";
                 port = 51921;
               };
 
               roles.peer.machines = {
-                peer1 = {};
-                peer2 = {};
+                peer1 = { };
+                peer2 = { };
+                peer3 = { };
               };
             };
 
-            wg-test-two = {
-
-              module.name = "@clan/wireguard";
-
-              roles.controller.machines."controller1".settings = {
-                # ip = "192.168.9.1";
-                endpoint = "192.168.1.1";
-                port = 51922;
-              };
-
-              roles.peer.machines = {
-                peer1 = {};
-              };
-            };
+            # wg-test-two = {
+            #
+            #   module.name = "@clan/wireguard";
+            #
+            #   roles.controller.machines."controller1".settings = {
+            #     endpoint = "192.168.1.1";
+            #     port = 51922;
+            #   };
+            #
+            #   roles.peer.machines = {
+            #     peer1 = { };
+            #   };
+            # };
           };
         };
       };
@@ -108,15 +111,6 @@ clanLib.test.makeTestClan {
         # admin.clan.data-mesher.network.tld = "foo";
       };
 
-      # TODO checks:
-      # - peers can reach (ping) controllers
-      # - controllers can reach (ping) peers
-      # - peers can reach (ping) peers
-      # - interfaces are correctly set up:
-      #   - wg-test-one on all machines
-      #   - wg-test-two on controllerA and peer1
-      # - peers are correctly set up
-
       testScript = ''
         start_all()
 
@@ -128,6 +122,8 @@ clanLib.test.makeTestClan {
         peer1.wait_for_unit("network-online.target")
         peer2.systemctl("start network-online.target")
         peer2.wait_for_unit("network-online.target")
+        peer3.systemctl("start network-online.target")
+        peer3.wait_for_unit("network-online.target")
 
         # Show all addresses
         controller1.succeed("ip a >&2")
@@ -136,52 +132,54 @@ clanLib.test.makeTestClan {
         controller2.succeed("ip a show wg-test-one >&2")
         peer1.succeed("ip a show wg-test-one >&2")
         peer2.succeed("ip a show wg-test-one >&2")
-        controller1.succeed("ip a show wg-test-two >&2")
-        peer1.succeed("ip a show wg-test-two >&2")
+        peer3.succeed("ip a show wg-test-one >&2")
+
+
+        controller1.succeed("cat /etc/hosts >&2")
+        controller2.succeed("cat /etc/hosts >&2")
+        peer1.succeed("cat /etc/hosts >&2")
+        peer2.succeed("cat /etc/hosts >&2")
+        peer3.succeed("cat /etc/hosts >&2")
 
         # Show wg configs
         controller1.succeed("wg >&2")
         controller2.succeed("wg >&2")
         peer1.succeed("wg >&2")
         peer2.succeed("wg >&2")
+        peer3.succeed("wg >&2")
 
-        # Endpoint is reachable
+        # Endpoints are reachable
         controller1.succeed("ping -c5 192.168.1.2")
         controller2.succeed("ping -c5 192.168.1.1")
 
-        # Ping from peers to controllers
-        peer1.succeed("ping -c5 192.168.8.1")
-        peer1.succeed("ping -c5 192.168.9.1")
-        peer2.succeed("ping -c5 192.168.8.1")
+        with subtest("Controllers can reach everything"):
+          controller1.succeed("ping -c5 controller1.wg-test-one")
+          controller1.succeed("ping -c5 controller2.wg-test-one")
+          controller1.succeed("ping -c5 peer1.wg-test-one")
+          controller1.succeed("ping -c5 peer2.wg-test-one")
+          controller1.succeed("ping -c5 peer3.wg-test-one")
+          controller2.succeed("ping -c5 controller1.wg-test-one")
+          controller2.succeed("ping -c5 controller2.wg-test-one")
+          controller2.succeed("ping -c5 peer1.wg-test-one")
+          controller2.succeed("ping -c5 peer2.wg-test-one")
+          controller2.succeed("ping -c5 peer3.wg-test-one")
 
-        # Ping from both controllers on both networks
-        # Network one
-        controller1.succeed("ping -c5 192.168.8.1") # itself
-        controller1.succeed("ping -c5 192.168.8.2") # other controller
-        controller1.succeed("ping -c5 192.168.8.3") # peer1
-        controller1.succeed("ping -c5 192.168.8.4") # peer2
-        controller2.succeed("ping -c5 192.168.8.1") # other controller
-        controller2.succeed("ping -c5 192.168.8.2") # itself
-        controller2.succeed("ping -c5 192.168.8.3") # peer1
-        controller2.succeed("ping -c5 192.168.8.4") # peer2
-        # Network two
-        controller1.succeed("ping -c5 192.168.9.1") # itself
-        controller1.succeed("ping -c5 192.168.9.3") # peer1
+        with subtest("Peers can reach both controllers"):
+          peer1.succeed("ping -c5 controller1.wg-test-one")
+          peer1.succeed("ping -c5 controller2.wg-test-one")
+          peer2.succeed("ping -c5 controller1.wg-test-one")
+          peer2.succeed("ping -c5 controller2.wg-test-one")
+          peer3.succeed("ping -c5 controller1.wg-test-one")
+          peer3.succeed("ping -c5 controller2.wg-test-one")
 
-
-        # Ping from peer to contoller
-        peer1.succeed("ping -c5 192.168.8.1")
-        # peer1.succeed("ping -c5 fc00::1")
-
-        # Ping from peer to peer
-        # peer2.succeed("ping -c5 192.168.8.2")
-        # peer2.succeed("ping -c5 fc00::1")
+        # Peers cannot reach other peers for now?
 
         with subtest("Has PSK set"):
           controller1.succeed("wg | grep 'preshared key'")
           controller2.succeed("wg | grep 'preshared key'")
           peer1.succeed("wg | grep 'preshared key'")
           peer2.succeed("wg | grep 'preshared key'")
+          peer3.succeed("wg | grep 'preshared key'")
       '';
     }
   );

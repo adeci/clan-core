@@ -135,14 +135,30 @@
         nixosModule =
           { config, ... }:
           let
-            allOthers = lib.filterAttrs (name: v: name != machine.name) (
-              roles.peer.machines // roles.controller.machines
-            );
+
+            allHosts = roles.peer.machines // roles.controller.machines;
+            allOthers = lib.filterAttrs (name: v: name != machine.name) allHosts;
           in
           {
             # Enable ip forwarding, so wireguard peers can reach eachother
             # TODO bug?
             # boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
+
+            networking.extraHosts =
+
+              builtins.concatStringsSep "\n" (
+
+                lib.mapAttrsToList (
+                  name: value:
+                  ''${
+                    lib.removeSuffix "\n" (
+                      builtins.readFile (
+                        config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
+                      )
+                    )
+                  } ${name}.${instanceName} ''
+                ) allHosts
+              );
 
             networking.wireguard.interfaces."${instanceName}" = {
 
