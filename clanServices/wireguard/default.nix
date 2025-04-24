@@ -55,37 +55,28 @@
 
           in
           {
-            networking.wireguard.interfaces = {
-              "${instanceName}" = {
+            networking.wireguard.interfaces."${instanceName}".peers = [
+              {
+                # Public key of the server
+                publicKey = (
+                  builtins.readFile (
+                    config.clan.core.settings.directory
+                    + "/vars/per-machine/${controllerName}/wireguard-${instanceName}/publickey/value"
+                  )
+                );
 
-                peers = [
-                  {
-                    # Public key of the server
-                    publicKey = (
-                      builtins.readFile (
-                        config.clan.core.settings.directory
-                        + "/vars/per-machine/${controllerName}/wireguard-${instanceName}/publickey/value"
-                      )
-                    );
-
-                    # Full subnet of the server
-                    allowedIPs = [
-                      "${builtins.readFile (
-                        config.clan.core.settings.directory
-                        + "/vars/per-machine/${controllerName}/wireguard-${instanceName}/prefix/value"
-                      )}"
-                    ];
-
-                    # Server IP and port
-                    endpoint = "${controller.settings.endpoint}:${toString controller.settings.port}";
-
-                    # Send keepalives every 25 seconds to keep NAT tables alive
-                    persistentKeepalive = 25;
-
-                  }
+                # Full subnet of the server
+                allowedIPs = [
+                  "${builtins.readFile (
+                    config.clan.core.settings.directory
+                    + "/vars/per-machine/${controllerName}/wireguard-${instanceName}/prefix/value"
+                  )}"
                 ];
-              };
-            };
+
+                endpoint = "${controller.settings.endpoint}:${toString controller.settings.port}";
+                persistentKeepalive = 25;
+              }
+            ];
           };
       };
   };
@@ -144,20 +135,11 @@
         nixosModule =
           { config, ... }:
           let
-            # allOthers = builtins.filter (p: p != machine.name) (
-            #   (lib.attrNames roles.peer.machines) ++ (lib.attrNames roles.controller.machines)
-            # );
-
-            # allMachines = roles.peer.machines // roles.contorller.machines;
-
             allOthers = lib.filterAttrs (name: v: name != machine.name) (
               roles.peer.machines // roles.controller.machines
             );
-
           in
-
           {
-
             # Enable ip forwarding, so wireguard peers can reach eachother
             # TODO bug?
             # boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
@@ -166,41 +148,24 @@
 
               listenPort = settings.port;
 
-              peers =
+              peers = lib.mapAttrsToList (name: value: {
+                publicKey = (
+                  builtins.readFile (
+                    config.clan.core.settings.directory
+                    + "/vars/per-machine/${name}/wireguard-${instanceName}/publickey/value"
+                  )
+                );
 
-                lib.mapAttrsToList (
-                  name: value:
+                allowedIPs = [
+                  # TODO do we need a subnet here?
+                  "${builtins.readFile (
+                    config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
+                  )}"
+                ] ++ value.settings.extraIPs;
 
-                  {
+                persistentKeepalive = 25;
 
-                    publicKey = (
-                      builtins.readFile (
-                        config.clan.core.settings.directory
-                        + "/vars/per-machine/${name}/wireguard-${instanceName}/publickey/value"
-                      )
-                    );
-
-                    allowedIPs = [
-                      # TODO do we need a subnet here?
-                      "${builtins.readFile (
-                        config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
-                      )}"
-                    ] ++ value.settings.extraIPs;
-
-                    persistentKeepalive = 25;
-
-                  }
-
-                ) allOthers;
-
-              #    { x = "a"; y = "b"; }
-              # => [ "xa" "yb" ]
-
-              # map (other: {
-              #
-              #
-              # }) (builtins.attrValues allOthers);
-              #
+              }) allOthers;
             };
           };
       };
