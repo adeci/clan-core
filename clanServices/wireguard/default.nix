@@ -18,6 +18,14 @@
         '';
       };
 
+      options.controller = lib.mkOption {
+        type = lib.types.str;
+        example = "contorller1";
+        description = ''
+          Machinename of the controller to attach to
+        '';
+      };
+
       options.extraIPs = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ ];
@@ -41,17 +49,31 @@
           { config, ... }:
           let
 
-            modulo = number: mod: (number - ((number / mod) * mod));
+            mkInterfaceName =
+              instance: controller: builtins.substring 0 8 (builtins.hashString "sha256" (lib.traceVal "${instance}${controller}"));
 
-            # Determine own index
-            peers = builtins.sort (p: q: p < q) (builtins.attrNames roles.peer.machines);
-            ownIndex = lib.lists.findFirstIndex (p: p == machine.name) null peers;
+            controllerName =
+              if (builtins.length (builtins.attrNames roles.controller.machines) == 1) then
+                (builtins.head roles.controller.machines)
+              else
+                settings.controller;
 
-            # Sort controllers and choose one
-            controllers = builtins.sort (p: q: p < q) (builtins.attrNames roles.controller.machines);
-            numControllers = builtins.length controllers;
-            controllerName = builtins.elemAt controllers (modulo ownIndex numControllers);
-            controller = roles.controller.machines."${controllerName}";
+            # controller = roles.controller.machines."${controllerName}";
+            #
+            # controllerPeers =
+            #   name:
+            #   builtins.filter (
+            #     p:
+            #     # let
+            #     #   peerController =
+            #     #     if (builtins.length (builtins.attrNames roles.controller.machines) == 1) then
+            #     #       (builtins.head roles.controller.machines)
+            #     #     else
+            #     #       roles.peer.machines."${p}".settings.controller;
+            #     # in
+            #     # (peerController == name && p != machine.name)
+            #     (p != machine.name)
+            #   ) (builtins.attrNames roles.peer.machines);
 
           in
           {
@@ -61,39 +83,48 @@
               lib.mapAttrsToList (
                 name: value:
                 ''${
-                  lib.removeSuffix "\n" (
-                    builtins.readFile (
-                      config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
-                    )
+                  builtins.readFile (
+                    config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
                   )
                 } ${name}.${instanceName} ''
-              ) (roles.controller.machines)
+              ) (roles.controller.machines // roles.peer.machines)
             );
 
-            networking.wireguard.interfaces."${instanceName}".peers = [
-              {
-                # Public key of the server
-                publicKey = (
-                  builtins.readFile (
-                    config.clan.core.settings.directory
-                    + "/vars/per-machine/${controllerName}/wireguard-${instanceName}/publickey/value"
-                  )
-                );
+            networking.wireguard.interfaces = lib.mapAttrs' (name: value: {
 
-                # Full subnet of the server
-                allowedIPs = [
-                  "${lib.removeSuffix "\n" (
-                    builtins.readFile (
-                      config.clan.core.settings.directory
-                      + "/vars/per-machine/${controllerName}/wireguard-${instanceName}/prefix/value"
-                    )
-                  )}"
+              name = mkInterfaceName instanceName name;
+
+              value = {
+
+                allowedIPsAsRoutes = (name == controllerName);
+
+                ips = [
+                  "${config.clan.core.vars.generators."wireguard-${instanceName}".files.ip.value}/128"
                 ];
 
-                endpoint = "${controller.settings.endpoint}:${toString controller.settings.port}";
-                persistentKeepalive = 25;
-              }
-            ];
+                privateKeyFile =
+                  config.clan.core.vars.generators."wireguard-${instanceName}".files."privatekey".path;
+
+                peers = [
+                  {
+
+                    # Public key of the controller
+                    publicKey = (
+                      builtins.readFile (
+                        config.clan.core.settings.directory
+                        + "/vars/per-machine/${name}/wireguard-${instanceName}/publickey/value"
+                      )
+                    );
+
+                    allowedIPs = [ config.clan.core.vars.generators."wireguard-${instanceName}".files.prefix.value ];
+
+                    # If it is a controller, we also set the endpoint
+                    endpoint = "${value.settings.endpoint}:${toString value.settings.port}";
+                    persistentKeepalive = 25;
+                  }
+                ];
+              };
+            }) roles.controller.machines;
           };
       };
   };
@@ -160,6 +191,9 @@
             # Enable ip forwarding, so wireguard peers can reach eachother
             # TODO bug?
             # boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
+            boot.kernel.sysctl."net.ipv6.conf.all.forwarding" = 1;
+
+            networking.firewall.allowedUDPPorts = [ settings.port ];
 
             networking.extraHosts =
 
@@ -168,10 +202,8 @@
                 lib.mapAttrsToList (
                   name: value:
                   ''${
-                    lib.removeSuffix "\n" (
-                      builtins.readFile (
-                        config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
-                      )
+                    builtins.readFile (
+                      config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
                     )
                   } ${name}.${instanceName} ''
                 ) allHosts
@@ -180,6 +212,13 @@
             networking.wireguard.interfaces."${instanceName}" = {
 
               listenPort = settings.port;
+
+              ips = [
+                "${config.clan.core.vars.generators."wireguard-${instanceName}".files.ip.value}/128"
+              ];
+
+              privateKeyFile =
+                config.clan.core.vars.generators."wireguard-${instanceName}".files."privatekey".path;
 
               peers = lib.mapAttrsToList (name: value: {
                 publicKey = (
@@ -190,16 +229,9 @@
                 );
 
                 allowedIPs = [
-                  # TODO do we need a subnet here?
-
-                  "${
-
-                    lib.removeSuffix "\n" (
-                      builtins.readFile (
-                        config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
-                      )
-                    )
-                  }"
+                  "${builtins.readFile (
+                    config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
+                  )}"
                 ] ++ value.settings.extraIPs;
 
                 # If it is a controller, we also set the endpoint
@@ -228,7 +260,7 @@
 
           # Generate keys for each instance of the host
           clan.core.vars.generators = lib.mapAttrs' (
-            name: value:
+            name: _value:
             lib.nameValuePair ("wireguard-" + name) rec {
               files.publickey.secret = false;
               files.privatekey = { };
@@ -255,28 +287,12 @@
 
                 # TODO Don't hardcode prefix length here
                 ula_prefix=$(generate_ula_prefix "${name}" "48")
-                echo $ula_prefix > $out/prefix
+                echo -n $ula_prefix > $out/prefix
                 generate_ipv6_address_from_prefix "$ula_prefix" ${machine.name} > $out/ip
               '';
             }
           ) instances;
 
-          # Set the private key for each instance
-          networking.wireguard.interfaces = builtins.mapAttrs (name: _: {
-            privateKeyFile = "${config.clan.core.vars.generators."wireguard-${name}".files."privatekey".path}";
-
-            ips = [
-              "${
-
-                lib.removeSuffix "\n" (
-                  builtins.readFile (
-                    config.clan.core.settings.directory + "/vars/per-machine/${machine.name}/wireguard-${name}/ip/value"
-                  )
-                )
-              }/128"
-            ];
-
-          }) instances;
         };
     };
 }

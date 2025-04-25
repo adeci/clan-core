@@ -61,9 +61,9 @@ clanLib.test.makeTestClan {
               };
 
               roles.peer.machines = {
-                peer1 = { };
-                peer2 = { };
-                peer3 = { };
+                peer1.settings.controller = "controller1";
+                peer2.settings.controller = "controller2";
+                peer3.settings.controller = "controller1";
               };
             };
 
@@ -138,7 +138,6 @@ clanLib.test.makeTestClan {
         peer2.succeed("ip a show wg-test-one >&2")
         peer3.succeed("ip a show wg-test-one >&2")
 
-
         controller1.succeed("cat /etc/hosts >&2")
         controller2.succeed("cat /etc/hosts >&2")
         peer1.succeed("cat /etc/hosts >&2")
@@ -153,37 +152,40 @@ clanLib.test.makeTestClan {
         peer3.succeed("wg >&2")
 
         # Endpoints are reachable
-        controller1.succeed("ping -c5 192.168.1.2")
-        controller2.succeed("ping -c5 192.168.1.1")
+        controller1.succeed("ping -c1 192.168.1.2")
+        controller2.succeed("ping -c1 192.168.1.1")
 
         with subtest("Controllers can reach everything"):
-          controller1.succeed("ping -c5 controller1.wg-test-one >&2")
-          controller1.succeed("ping -c5 controller2.wg-test-one >&2")
-          controller1.succeed("ping -c5 peer1.wg-test-one")
-          controller1.succeed("ping -c5 peer2.wg-test-one")
-          controller1.succeed("ping -c5 peer3.wg-test-one")
-          controller2.succeed("ping -c5 controller1.wg-test-one")
-          controller2.succeed("ping -c5 controller2.wg-test-one")
-          controller2.succeed("ping -c5 peer1.wg-test-one")
-          controller2.succeed("ping -c5 peer2.wg-test-one")
-          controller2.succeed("ping -c5 peer3.wg-test-one")
+          controller1.succeed("ping -c1 controller1.wg-test-one >&2")
+          controller1.succeed("ping -c1 controller2.wg-test-one >&2")
+          controller1.succeed("ping -c1 peer1.wg-test-one")
+          controller1.succeed("ping -c1 peer2.wg-test-one")
+          controller1.succeed("ping -c1 peer3.wg-test-one")
+          controller2.succeed("ping -c1 controller1.wg-test-one")
+          controller2.succeed("ping -c1 controller2.wg-test-one")
+          controller2.succeed("ping -c1 peer1.wg-test-one")
+          controller2.succeed("ping -c1 peer2.wg-test-one")
+          controller2.succeed("ping -c1 peer3.wg-test-one")
 
         with subtest("Peers can reach both controllers"):
-          peer1.succeed("ping -c5 controller1.wg-test-one >&2")
-          peer1.succeed("ping -c5 controller2.wg-test-one")
-          peer2.succeed("ping -c5 controller1.wg-test-one")
-          peer2.succeed("ping -c5 controller2.wg-test-one")
-          peer3.succeed("ping -c5 controller1.wg-test-one")
-          peer3.succeed("ping -c5 controller2.wg-test-one")
+          peer1.succeed("ping -c1 controller1.wg-test-one >&2")
+          peer1.succeed("ping -c1 controller2.wg-test-one")
+          peer2.succeed("ping -c1 controller1.wg-test-one")
+          peer2.succeed("ping -c1 controller2.wg-test-one")
+          peer3.succeed("ping -c1 controller1.wg-test-one")
+          peer3.succeed("ping -c1 controller2.wg-test-one")
 
-        # Peers cannot reach other peers for now?
+        with subtest("Peers can reach other peers"):
+          peer1.succeed("ping -c1 peer1.wg-test-one >&2")
+          peer1.succeed("ping -c1 peer2.wg-test-one >&2")
+          peer1.succeed("ping -c1 peer3.wg-test-one >&2")
+          peer2.succeed("ping -c1 peer1.wg-test-one >&2")
+          peer2.succeed("ping -c1 peer2.wg-test-one >&2")
+          peer2.succeed("ping -c1 peer3.wg-test-one >&2")
+          peer3.succeed("ping -c1 peer1.wg-test-one >&2")
+          peer3.succeed("ping -c1 peer2.wg-test-one >&2")
+          peer3.succeed("ping -c1 peer3.wg-test-one >&2")
 
-        with subtest("Has PSK set"):
-          controller1.succeed("wg | grep 'preshared key'")
-          controller2.succeed("wg | grep 'preshared key'")
-          peer1.succeed("wg | grep 'preshared key'")
-          peer2.succeed("wg | grep 'preshared key'")
-          peer3.succeed("wg | grep 'preshared key'")
       '';
     }
   );

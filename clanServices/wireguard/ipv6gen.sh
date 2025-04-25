@@ -8,7 +8,7 @@ generate_ula_prefix() {
     local global_id="${hash:0:10}"  # 40 bits = 10 hex chars
 
     # Construct the base ULA prefix (always starts with fd)
-    printf "fd%s:%s:%s::/%s\n" "${global_id:0:2}" "${global_id:2:4}" "${global_id:6:4}" "$prefix_len"
+    printf "fd%s:%s:%s::/%s" "${global_id:0:2}" "${global_id:2:4}" "${global_id:6:4}" "$prefix_len"
 }
 
 # Generate a full IPv6 address from a given prefix and string
@@ -37,7 +37,7 @@ generate_ipv6_address_from_prefix() {
     done
 
     # Combine with prefix and print the full address
-    printf "%s:%s\n" "${base_prefix%%::*}" "$suffix"
+    printf "%s:%s" "${base_prefix%%::*}" "$suffix"
 }
 
 # Generate a /56 ULA prefix from "my-network":
