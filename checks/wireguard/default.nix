@@ -87,6 +87,10 @@ clanLib.test.makeTestClan {
       defaults =
         { config, ... }:
         {
+
+          # TODO remove
+          console.keyMap = "colemak";
+
           #
           #
           #
@@ -153,8 +157,8 @@ clanLib.test.makeTestClan {
         controller2.succeed("ping -c5 192.168.1.1")
 
         with subtest("Controllers can reach everything"):
-          controller1.succeed("ping -c5 controller1.wg-test-one")
-          controller1.succeed("ping -c5 controller2.wg-test-one")
+          controller1.succeed("ping -c5 controller1.wg-test-one >&2")
+          controller1.succeed("ping -c5 controller2.wg-test-one >&2")
           controller1.succeed("ping -c5 peer1.wg-test-one")
           controller1.succeed("ping -c5 peer2.wg-test-one")
           controller1.succeed("ping -c5 peer3.wg-test-one")
@@ -165,7 +169,7 @@ clanLib.test.makeTestClan {
           controller2.succeed("ping -c5 peer3.wg-test-one")
 
         with subtest("Peers can reach both controllers"):
-          peer1.succeed("ping -c5 controller1.wg-test-one")
+          peer1.succeed("ping -c5 controller1.wg-test-one >&2")
           peer1.succeed("ping -c5 controller2.wg-test-one")
           peer2.succeed("ping -c5 controller1.wg-test-one")
           peer2.succeed("ping -c5 controller2.wg-test-one")

@@ -55,6 +55,21 @@
 
           in
           {
+
+            # Add controllers to /etc/hosts
+            networking.extraHosts = builtins.concatStringsSep "\n" (
+              lib.mapAttrsToList (
+                name: value:
+                ''${
+                  lib.removeSuffix "\n" (
+                    builtins.readFile (
+                      config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
+                    )
+                  )
+                } ${name}.${instanceName} ''
+              ) (roles.controller.machines)
+            );
+
             networking.wireguard.interfaces."${instanceName}".peers = [
               {
                 # Public key of the server
@@ -67,9 +82,11 @@
 
                 # Full subnet of the server
                 allowedIPs = [
-                  "${builtins.readFile (
-                    config.clan.core.settings.directory
-                    + "/vars/per-machine/${controllerName}/wireguard-${instanceName}/prefix/value"
+                  "${lib.removeSuffix "\n" (
+                    builtins.readFile (
+                      config.clan.core.settings.directory
+                      + "/vars/per-machine/${controllerName}/wireguard-${instanceName}/prefix/value"
+                    )
                   )}"
                 ];
 
@@ -174,10 +191,24 @@
 
                 allowedIPs = [
                   # TODO do we need a subnet here?
-                  "${builtins.readFile (
-                    config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
-                  )}"
+
+                  "${
+
+                    lib.removeSuffix "\n" (
+                      builtins.readFile (
+                        config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
+                      )
+                    )
+                  }"
                 ] ++ value.settings.extraIPs;
+
+                # If it is a controller, we also set the endpoint
+                endpoint =
+                  if builtins.elem name (builtins.attrNames roles.controller.machines) then
+                    # if (builtins.elem "controller" value.roles) then
+                    "${value.settings.endpoint}:${toString value.settings.port}"
+                  else
+                    null;
 
                 persistentKeepalive = 25;
 
@@ -216,19 +247,17 @@
               validation.hostname = machine.name;
               validation.network = name;
 
-              script =
+              script = ''
+                wg genkey > $out/privatekey
+                wg pubkey < $out/privatekey > $out/publickey
 
-                ''
-                  wg genkey > $out/privatekey
-                  wg pubkey < $out/privatekey > $out/publickey
+                ${builtins.readFile ./ipv6gen.sh}
 
-                  ${builtins.readFile ./ipv6gen.sh}
-
-                  # TODO Don't hardcode prefix length here
-                  ula_prefix=$(generate_ula_prefix "${name}" "48")
-                  echo $ula_prefix > $out/prefix
-                  generate_ipv6_address_from_prefix "$ula_prefix" ${machine.name} > $out/ip
-                '';
+                # TODO Don't hardcode prefix length here
+                ula_prefix=$(generate_ula_prefix "${name}" "48")
+                echo $ula_prefix > $out/prefix
+                generate_ipv6_address_from_prefix "$ula_prefix" ${machine.name} > $out/ip
+              '';
             }
           ) instances;
 
@@ -238,10 +267,13 @@
 
             ips = [
               "${
-                builtins.readFile (
-                  config.clan.core.settings.directory + "/vars/per-machine/${machine.name}/wireguard-${name}/ip/value"
+
+                lib.removeSuffix "\n" (
+                  builtins.readFile (
+                    config.clan.core.settings.directory + "/vars/per-machine/${machine.name}/wireguard-${name}/ip/value"
+                  )
                 )
-              }/48"
+              }/128"
             ];
 
           }) instances;
