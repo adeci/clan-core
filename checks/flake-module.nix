@@ -14,6 +14,7 @@ in
     ./installation/flake-module.nix
     ./morph/flake-module.nix
     ./nixos-documentation/flake-module.nix
+    ./sanity-checks/dont-depend-on-repo-root.nix
   ];
   perSystem =
     {
