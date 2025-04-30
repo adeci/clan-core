@@ -95,34 +95,16 @@
         nixosModule =
           { config, ... }:
           let
-
             # TODO use. Not using during development for ease of debugging
             mkInterfaceName =
               instance: controller:
-              builtins.substring 0 8 (builtins.hashString "sha256" (lib.traceVal "${instance}${controller}"));
+              builtins.substring 0 8 (builtins.hashString "sha256" "${instance}${controller}");
 
             controllerName =
               if (builtins.length (builtins.attrNames roles.controller.machines) == 1) then
                 (builtins.head roles.controller.machines)
               else
                 settings.controller;
-
-            # controller = roles.controller.machines."${controllerName}";
-            # controllerPeers =
-            #   name:
-            #   builtins.filter (
-            #     p:
-            #     # let
-            #     #   peerController =
-            #     #     if (builtins.length (builtins.attrNames roles.controller.machines) == 1) then
-            #     #       (builtins.head roles.controller.machines)
-            #     #     else
-            #     #       roles.peer.machines."${p}".settings.controller;
-            #     # in
-            #     # (peerController == name && p != machine.name)
-            #     (p != machine.name)
-            #   ) (builtins.attrNames roles.peer.machines);
-
           in
           {
 
@@ -141,68 +123,43 @@
             networking.firewall.allowedUDPPorts = [ settings.port-peers ];
 
             networking.wireguard.interfaces = lib.mapAttrs' (name: value: {
-              name = (mkInterfaceName instanceName name);
-              value =
+              name = mkInterfaceName instanceName name;
+              value = {
 
-                let
+                # Routes of the own controller win over the routes of the other
+                metric = if name == controllerName then 700 else 800;
 
-                  # controllerPeersIps =
-                  #   controllerName:
-                  #   lib.mapAttrsToList (
-                  #     name: value:
-                  #     "${builtins.readFile (
-                  #       config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
-                  #     )}"
-                  #   ) (lib.filterAttrs (n: v: v.settings.controller == controllerName) roles.peer.machines);
+                ips = [
+                  "${config.clan.core.vars.generators."wireguard-${instanceName}".files.ip.value}/128"
+                ];
 
-                  peerIps = lib.mapAttrsToList (
-                    name: value:
-                    "${builtins.readFile (
-                      config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
-                    )}"
-                  ) (roles.peer.machines);
-                in
+                privateKeyFile =
+                  config.clan.core.vars.generators."wireguard-${instanceName}".files."privatekey".path;
 
-                {
+                peers = [
+                  {
+                    publicKey = (
+                      builtins.readFile (
+                        config.clan.core.settings.directory
+                        + "/vars/per-machine/${name}/wireguard-${instanceName}/publickey/value"
+                      )
+                    );
 
-                  # Only set routes for the controller of the peer
-                  allowedIPsAsRoutes = (name == controllerName);
+                    allowedIPs = [
+                      config.clan.core.vars.generators."wireguard-${instanceName}".files.prefix.value
+                      (builtins.readFile (
+                        config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
+                      ))
+                    ];
 
-                  ips = [
-                    "${config.clan.core.vars.generators."wireguard-${instanceName}".files.ip.value}/128"
-                  ];
+                    endpoint = "${roles.controller.machines."${name}".settings.endpoint}:${
+                      toString roles.controller.machines."${name}".settings.port-peers
+                    }";
 
-                  privateKeyFile =
-                    config.clan.core.vars.generators."wireguard-${instanceName}".files."privatekey".path;
-
-                  peers = [
-                    {
-                      publicKey = (
-                        builtins.readFile (
-                          config.clan.core.settings.directory
-                          + "/vars/per-machine/${name}/wireguard-${instanceName}/publickey/value"
-                        )
-                      );
-
-                      allowedIPs =
-                        [
-
-                          # config.clan.core.vars.generators."wireguard-${instanceName}".files.prefix.value
-
-                          "${builtins.readFile (
-                            config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
-                          )}"
-
-                        ]
-                        # ++ (controllerPeersIps name)
-                        ++ peerIps;
-
-                      endpoint = "${roles.controller.machines."${name}".settings.endpoint}:${
-                        toString roles.controller.machines."${name}".settings.port-peers
-                      }";
-                    }
-                  ];
-                };
+                    persistentKeepalive = 25;
+                  }
+                ];
+              };
             }) roles.controller.machines;
           };
       };
@@ -283,19 +240,6 @@
                 )}"
               ) (lib.filterAttrs (_n: v: v.settings.controller == controllerName) roles.peer.machines);
 
-            # builtins.filter (
-            #   p:
-            #   let
-            #     peerController =
-            #       if (builtins.length (builtins.attrNames roles.controller.machines) == 1) then
-            #         (builtins.head roles.controller.machines)
-            #       else
-            #         roles.peer.machines."${p}".settings.controller;
-            #   in
-            #   (peerController == name && p != machine.name)
-            #   # (p != machine.name)
-            # ) (builtins.attrNames roles.peer.machines);
-
           in
           {
             # Enable ip forwarding, so wireguard peers can reach eachother
@@ -342,9 +286,9 @@
                 );
 
                 allowedIPs = [
-                  "${builtins.readFile (
+                  (builtins.readFile (
                     config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
-                  )}"
+                  ))
                 ] ++ value.settings.extraIPs;
 
                 persistentKeepalive = 25;
@@ -352,11 +296,25 @@
               }) (roles.peer.machines);
             };
 
+            systemd.network.networks = lib.mapAttrs' (name: value: {
+              name = "${instanceName}-c";
+              value = {
+                routes = [
+                  {
+                    Destination = builtins.readFile (
+                      config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
+                    );
+                  }
+                ];
+              };
+            }) allOtherControllers;
+
             # Interface to peers
             # TODO use hashed interface name
             networking.wireguard.interfaces."${instanceName}-c" = {
 
               listenPort = settings.port-controllers;
+              allowedIPsAsRoutes = false;
 
               ips = [
                 "${config.clan.core.vars.generators."wireguard-${instanceName}".files.ip.value}/128"
@@ -376,9 +334,9 @@
                 # TODO add the ip's of this controller's peers here aswell
                 allowedIPs =
                   [
-                    "${builtins.readFile (
+                    (builtins.readFile (
                       config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
-                    )}"
+                    ))
                   ]
                   ++ (controllerPeersIps name)
                   ++ value.settings.extraIPs;
@@ -397,7 +355,7 @@
     { instances, machine, ... }:
     {
       nixosModule =
-        { config, pkgs, ... }:
+        { pkgs, ... }:
         {
 
           # Generate keys for each instance of the host
