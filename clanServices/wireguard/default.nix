@@ -1,3 +1,8 @@
+# Peers: Get ONE intreface, connected to one chosen controller
+# Controllers: Get TWO interfaces:
+#   - One connected to all other controllers
+#   - One connected to all peers
+
 { lib, ... }:
 {
   _class = "clan.service";
@@ -15,6 +20,15 @@
         default = 48;
         description = ''
           Length of the prefix
+        '';
+      };
+
+      options.port-peers = lib.mkOption {
+        type = lib.types.int;
+        example = 51820;
+        default = 51820;
+        description = ''
+          Port for the controller intrerface and endpoint
         '';
       };
 
@@ -49,8 +63,10 @@
           { config, ... }:
           let
 
+            # TODO use. Not using during development for ease of debugging
             mkInterfaceName =
-              instance: controller: builtins.substring 0 8 (builtins.hashString "sha256" (lib.traceVal "${instance}${controller}"));
+              instance: controller:
+              builtins.substring 0 8 (builtins.hashString "sha256" (lib.traceVal "${instance}${controller}"));
 
             controllerName =
               if (builtins.length (builtins.attrNames roles.controller.machines) == 1) then
@@ -59,7 +75,6 @@
                 settings.controller;
 
             # controller = roles.controller.machines."${controllerName}";
-            #
             # controllerPeers =
             #   name:
             #   builtins.filter (
@@ -78,7 +93,7 @@
           in
           {
 
-            # Add controllers to /etc/hosts
+            # Add all machines to /etc/hosts
             networking.extraHosts = builtins.concatStringsSep "\n" (
               lib.mapAttrsToList (
                 name: value:
@@ -90,41 +105,44 @@
               ) (roles.controller.machines // roles.peer.machines)
             );
 
-            networking.wireguard.interfaces = lib.mapAttrs' (name: value: {
+            networking.firewall.allowedUDPPorts = [
+              settings.port-peers
+            ];
 
-              name = mkInterfaceName instanceName name;
+            # TODO use hashed interface name
+            # networking.wireguard.interfaces."${(mkInterfaceName instanceName controllerName)}" = {
+            networking.wireguard.interfaces."${instanceName}" = {
 
-              value = {
+              # allowedIPsAsRoutes = (name == controllerName);
 
-                allowedIPsAsRoutes = (name == controllerName);
+              ips = [
+                "${config.clan.core.vars.generators."wireguard-${instanceName}".files.ip.value}/128"
+              ];
 
-                ips = [
-                  "${config.clan.core.vars.generators."wireguard-${instanceName}".files.ip.value}/128"
-                ];
+              privateKeyFile =
+                config.clan.core.vars.generators."wireguard-${instanceName}".files."privatekey".path;
 
-                privateKeyFile =
-                  config.clan.core.vars.generators."wireguard-${instanceName}".files."privatekey".path;
+              peers = [
+                {
+                  # Public key of the controller
+                  publicKey = (
+                    builtins.readFile (
+                      config.clan.core.settings.directory
+                      + "/vars/per-machine/${controllerName}/wireguard-${instanceName}/publickey/value"
+                    )
+                  );
 
-                peers = [
-                  {
+                  allowedIPs = [ config.clan.core.vars.generators."wireguard-${instanceName}".files.prefix.value ];
 
-                    # Public key of the controller
-                    publicKey = (
-                      builtins.readFile (
-                        config.clan.core.settings.directory
-                        + "/vars/per-machine/${name}/wireguard-${instanceName}/publickey/value"
-                      )
-                    );
+                  # If it is a controller, we also set the endpoint
+                  endpoint = "${roles.controller.machines."${controllerName}".settings.endpoint}:${
+                    toString roles.controller.machines."${controllerName}".settings.port-peers
+                  }";
 
-                    allowedIPs = [ config.clan.core.vars.generators."wireguard-${instanceName}".files.prefix.value ];
-
-                    # If it is a controller, we also set the endpoint
-                    endpoint = "${value.settings.endpoint}:${toString value.settings.port}";
-                    persistentKeepalive = 25;
-                  }
-                ];
-              };
-            }) roles.controller.machines;
+                  persistentKeepalive = 25;
+                }
+              ];
+            };
           };
       };
   };
@@ -140,12 +158,21 @@
         '';
       };
 
-      options.port = lib.mkOption {
+      options.port-peers = lib.mkOption {
         type = lib.types.int;
         example = 51820;
         default = 51820;
         description = ''
-          Port for the endpoint, where the contoller can be reached
+          Port for the controller intrerface and endpoint
+        '';
+      };
+
+      options.port-controllers = lib.mkOption {
+        type = lib.types.int;
+        example = 51821;
+        default = 51821;
+        description = ''
+          Port for the peer interface
         '';
       };
 
@@ -183,17 +210,19 @@
         nixosModule =
           { config, ... }:
           let
-
             allHosts = roles.peer.machines // roles.controller.machines;
-            allOthers = lib.filterAttrs (name: v: name != machine.name) allHosts;
+            allOtherControllers = lib.filterAttrs (name: v: name != machine.name) roles.controller.machines;
           in
           {
             # Enable ip forwarding, so wireguard peers can reach eachother
             # TODO bug?
-            # boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
+            boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
             boot.kernel.sysctl."net.ipv6.conf.all.forwarding" = 1;
 
-            networking.firewall.allowedUDPPorts = [ settings.port ];
+            networking.firewall.allowedUDPPorts = [
+              settings.port-peers
+              settings.port-controllers
+            ];
 
             networking.extraHosts =
 
@@ -209,9 +238,41 @@
                 ) allHosts
               );
 
-            networking.wireguard.interfaces."${instanceName}" = {
+            # Interface to other controllers
+            # TODO use hashed interface name
+            networking.wireguard.interfaces."${instanceName}-p" = {
 
-              listenPort = settings.port;
+              listenPort = settings.port-peers;
+
+              ips = [ "${config.clan.core.vars.generators."wireguard-${instanceName}".files.ip.value}/128" ];
+
+              privateKeyFile =
+                config.clan.core.vars.generators."wireguard-${instanceName}".files."privatekey".path;
+
+              peers = lib.mapAttrsToList (name: value: {
+                publicKey = (
+                  builtins.readFile (
+                    config.clan.core.settings.directory
+                    + "/vars/per-machine/${name}/wireguard-${instanceName}/publickey/value"
+                  )
+                );
+
+                allowedIPs = [
+                  "${builtins.readFile (
+                    config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
+                  )}"
+                ] ++ value.settings.extraIPs;
+
+                persistentKeepalive = 25;
+
+              }) (roles.peer.machines);
+            };
+
+            # Interface to peers
+            # TODO use hashed interface name
+            networking.wireguard.interfaces."${instanceName}-c" = {
+
+              listenPort = settings.port-controllers;
 
               ips = [
                 "${config.clan.core.vars.generators."wireguard-${instanceName}".files.ip.value}/128"
@@ -234,17 +295,10 @@
                   )}"
                 ] ++ value.settings.extraIPs;
 
-                # If it is a controller, we also set the endpoint
-                endpoint =
-                  if builtins.elem name (builtins.attrNames roles.controller.machines) then
-                    # if (builtins.elem "controller" value.roles) then
-                    "${value.settings.endpoint}:${toString value.settings.port}"
-                  else
-                    null;
-
+                endpoint = "${value.settings.endpoint}:${toString value.settings.port-controllers}";
                 persistentKeepalive = 25;
 
-              }) allOthers;
+              }) allOtherControllers;
             };
           };
       };

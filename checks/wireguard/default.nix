@@ -52,12 +52,10 @@ clanLib.test.makeTestClan {
 
               roles.controller.machines."controller1".settings = {
                 endpoint = "192.168.1.1";
-                port = 51920;
               };
 
               roles.controller.machines."controller2".settings = {
                 endpoint = "192.168.1.2";
-                port = 51921;
               };
 
               roles.peer.machines = {
