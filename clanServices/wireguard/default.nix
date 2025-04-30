@@ -1,7 +1,40 @@
-# Peers: Get ONE intreface, connected to one chosen controller
-# Controllers: Get TWO interfaces:
-#   - One connected to all other controllers
-#   - One connected to all peers
+/*
+  There are two roles: peers and controllers:
+    - Every controller has an endpoint set
+    - There can be multiple peers
+    - There has to be one or more controllers
+    - If multiple controllers exist, every peer has to set "their" chosen controller
+    - Controllers have forwarding enabled, every peer and controller can reach
+      everyone else, via extra controller hops if necessary
+
+    Example:
+              ┌───────────────────────────────┐
+              │            ◄─────────────     │
+              │ controller2              controller1
+              │    ▲       ─────────────►    ▲     ▲
+              │    │ │ │ │                 │ │   │ │
+              │    │ │ │ │                 │ │   │ │
+              │    │ │ │ │                 │ │   │ │
+              │    │ │ │ └───────────────┐ │ │   │ │
+              │    │ │ └──────────────┐  │ │ │   │ │
+              │      ▼                │  ▼ ▼     ▼
+              └─► peer2               │  peer1  peer3
+                                      │          ▲
+                                      └──────────┘
+
+  Peers: Get one iterface per controller, they have one "chosen" controller:
+    - for chosen controller:
+         - allowedIPsAsRoutes = true
+         - allowedIPs = ?????
+    - for each other controller:
+         - allowedIPsAsRoutes = false
+         - allowedIPs = ?????
+  Controllers: Get TWO interfaces:
+    - One connected to all other controllers
+         - allowedIPs: the other corntroller's /128 ip
+    - One connected to all peers
+         - allowedIPs: the peer's /128 ip
+*/
 
 { lib, ... }:
 {
@@ -96,7 +129,7 @@
             # Add all machines to /etc/hosts
             networking.extraHosts = builtins.concatStringsSep "\n" (
               lib.mapAttrsToList (
-                name: value:
+                name: _value:
                 ''${
                   builtins.readFile (
                     config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
@@ -105,44 +138,72 @@
               ) (roles.controller.machines // roles.peer.machines)
             );
 
-            networking.firewall.allowedUDPPorts = [
-              settings.port-peers
-            ];
+            networking.firewall.allowedUDPPorts = [ settings.port-peers ];
 
-            # TODO use hashed interface name
-            # networking.wireguard.interfaces."${(mkInterfaceName instanceName controllerName)}" = {
-            networking.wireguard.interfaces."${instanceName}" = {
+            networking.wireguard.interfaces = lib.mapAttrs' (name: value: {
+              name = (mkInterfaceName instanceName name);
+              value =
 
-              # allowedIPsAsRoutes = (name == controllerName);
+                let
 
-              ips = [
-                "${config.clan.core.vars.generators."wireguard-${instanceName}".files.ip.value}/128"
-              ];
+                  # controllerPeersIps =
+                  #   controllerName:
+                  #   lib.mapAttrsToList (
+                  #     name: value:
+                  #     "${builtins.readFile (
+                  #       config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
+                  #     )}"
+                  #   ) (lib.filterAttrs (n: v: v.settings.controller == controllerName) roles.peer.machines);
 
-              privateKeyFile =
-                config.clan.core.vars.generators."wireguard-${instanceName}".files."privatekey".path;
+                  peerIps = lib.mapAttrsToList (
+                    name: value:
+                    "${builtins.readFile (
+                      config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
+                    )}"
+                  ) (roles.peer.machines);
+                in
 
-              peers = [
                 {
-                  # Public key of the controller
-                  publicKey = (
-                    builtins.readFile (
-                      config.clan.core.settings.directory
-                      + "/vars/per-machine/${controllerName}/wireguard-${instanceName}/publickey/value"
-                    )
-                  );
 
-                  allowedIPs = [ config.clan.core.vars.generators."wireguard-${instanceName}".files.prefix.value ];
+                  # Only set routes for the controller of the peer
+                  allowedIPsAsRoutes = (name == controllerName);
 
-                  # If it is a controller, we also set the endpoint
-                  endpoint = "${roles.controller.machines."${controllerName}".settings.endpoint}:${
-                    toString roles.controller.machines."${controllerName}".settings.port-peers
-                  }";
+                  ips = [
+                    "${config.clan.core.vars.generators."wireguard-${instanceName}".files.ip.value}/128"
+                  ];
 
-                  persistentKeepalive = 25;
-                }
-              ];
-            };
+                  privateKeyFile =
+                    config.clan.core.vars.generators."wireguard-${instanceName}".files."privatekey".path;
+
+                  peers = [
+                    {
+                      publicKey = (
+                        builtins.readFile (
+                          config.clan.core.settings.directory
+                          + "/vars/per-machine/${name}/wireguard-${instanceName}/publickey/value"
+                        )
+                      );
+
+                      allowedIPs =
+                        [
+
+                          # config.clan.core.vars.generators."wireguard-${instanceName}".files.prefix.value
+
+                          "${builtins.readFile (
+                            config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
+                          )}"
+
+                        ]
+                        # ++ (controllerPeersIps name)
+                        ++ peerIps;
+
+                      endpoint = "${roles.controller.machines."${name}".settings.endpoint}:${
+                        toString roles.controller.machines."${name}".settings.port-peers
+                      }";
+                    }
+                  ];
+                };
+            }) roles.controller.machines;
           };
       };
   };
@@ -211,12 +272,35 @@
           { config, ... }:
           let
             allHosts = roles.peer.machines // roles.controller.machines;
-            allOtherControllers = lib.filterAttrs (name: v: name != machine.name) roles.controller.machines;
+            allOtherControllers = lib.filterAttrs (name: _v: name != machine.name) roles.controller.machines;
+
+            controllerPeersIps =
+              controllerName:
+              lib.mapAttrsToList (
+                name: _value:
+                "${builtins.readFile (
+                  config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
+                )}"
+              ) (lib.filterAttrs (_n: v: v.settings.controller == controllerName) roles.peer.machines);
+
+            # builtins.filter (
+            #   p:
+            #   let
+            #     peerController =
+            #       if (builtins.length (builtins.attrNames roles.controller.machines) == 1) then
+            #         (builtins.head roles.controller.machines)
+            #       else
+            #         roles.peer.machines."${p}".settings.controller;
+            #   in
+            #   (peerController == name && p != machine.name)
+            #   # (p != machine.name)
+            # ) (builtins.attrNames roles.peer.machines);
+
           in
           {
             # Enable ip forwarding, so wireguard peers can reach eachother
             # TODO bug?
-            boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
+            # boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
             boot.kernel.sysctl."net.ipv6.conf.all.forwarding" = 1;
 
             networking.firewall.allowedUDPPorts = [
@@ -229,7 +313,7 @@
               builtins.concatStringsSep "\n" (
 
                 lib.mapAttrsToList (
-                  name: value:
+                  name: _value:
                   ''${
                     builtins.readFile (
                       config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
@@ -289,11 +373,15 @@
                   )
                 );
 
-                allowedIPs = [
-                  "${builtins.readFile (
-                    config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
-                  )}"
-                ] ++ value.settings.extraIPs;
+                # TODO add the ip's of this controller's peers here aswell
+                allowedIPs =
+                  [
+                    "${builtins.readFile (
+                      config.clan.core.settings.directory + "/vars/per-machine/${name}/wireguard-${instanceName}/ip/value"
+                    )}"
+                  ]
+                  ++ (controllerPeersIps name)
+                  ++ value.settings.extraIPs;
 
                 endpoint = "${value.settings.endpoint}:${toString value.settings.port-controllers}";
                 persistentKeepalive = 25;
