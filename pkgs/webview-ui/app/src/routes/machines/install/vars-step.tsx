@@ -10,20 +10,35 @@ import { StepProps } from "./hardware-step";
 import { Typography } from "@/src/components/Typography";
 import { Group } from "@/src/components/group";
 import { For, Match, Show, Switch } from "solid-js";
+import { TextInput } from "@/src/Form/fields";
+import toast from "solid-toast";
 
-export type VarsValues = FieldValues & Record<string, string>;
+export type VarsValues = FieldValues & Record<string, Record<string, string>>;
 
 export const VarsStep = (props: StepProps<VarsValues>) => {
   const [formStore, { Form, Field }] = createForm<VarsValues>({
-    initialValues: { ...props.initial, schema: "single-disk" },
+    // initialValues: { ...props.initial, schema: "single-disk" },
   });
 
   const handleSubmit: SubmitHandler<VarsValues> = async (values, event) => {
     console.log("Submit Disk", { values });
     const valid = await validate(formStore);
-    console.log("Valid", valid);
-    if (!valid) return;
-    props.handleNext(values);
+    if (generatorsQuery.data === undefined) {
+      toast.error("Error fetching data");
+      return;
+    }
+    const loading_toast = toast.loading("Generating vars...");
+    const result = await callApi("generate_vars_for_machine", {
+      machine_name: props.machine_id,
+      base_dir: props.dir,
+      generators: generatorsQuery.data.map((generator) => generator.name),
+      all_prompt_values: values,
+    });
+    toast.dismiss(loading_toast);
+    if (result.status === "error") {
+      toast.error(result.errors[0].message);
+      return;
+    }
   };
 
   const generatorsQuery = createQuery(() => ({
@@ -61,14 +76,26 @@ export const VarsStep = (props: StepProps<VarsValues>) => {
                         {generator.share ? "True" : "False"}
                       </div>
                       <For each={generator.prompts}>
-                        {(f) => (
+                        {(prompt) => (
                           <Group>
                             <Typography hierarchy="label" size="s">
-                              {!f.previous_value ? "Required" : "Optional"}
+                              {!prompt.previous_value ? "Required" : "Optional"}
                             </Typography>
                             <Typography hierarchy="label" size="s">
-                              {f.name}
+                              {prompt.name}
                             </Typography>
+                            <Field name={`${generator.name}.${prompt.name}`}>
+                              {(field, props) => (
+                                <TextInput
+                                  inputProps={props}
+                                  label={prompt.description}
+                                  value={prompt.previous_value ?? ""}
+                                  error={field.error}
+                                  // class="col-span-2"
+                                  // required
+                                />
+                              )}
+                            </Field>
                           </Group>
                         )}
                       </For>
@@ -81,6 +108,7 @@ export const VarsStep = (props: StepProps<VarsValues>) => {
         </div>
       </div>
       <Show when={generatorsQuery.isFetched}>{props.footer}</Show>
+      <button type="submit">Submit</button>
     </Form>
   );
 };

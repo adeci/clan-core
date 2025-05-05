@@ -11,7 +11,7 @@ import {
   getValues,
   setValue,
 } from "@modular-forms/solid";
-import { useParams } from "@solidjs/router";
+import { useNavigate, useParams } from "@solidjs/router";
 import { createQuery } from "@tanstack/solid-query";
 import { createSignal, For, Match, Show, Switch } from "solid-js";
 import toast from "solid-toast";
@@ -416,6 +416,8 @@ const MachineForm = (props: MachineDetailsProps) => {
 
   const [installModalOpen, setInstallModalOpen] = createSignal(false);
 
+  const navigate = useNavigate();
+
   const handleSubmit = async (values: MachineFormInterface) => {
     console.log("submitting", values);
 
@@ -448,6 +450,8 @@ const MachineForm = (props: MachineDetailsProps) => {
   };
 
   const handleUpdate = async () => {
+    // TODO: set this up properly, so it works with install and update
+    navigate("/prompts");
     const curr_uri = activeURI();
     if (!curr_uri) {
       return;
@@ -481,6 +485,7 @@ const MachineForm = (props: MachineDetailsProps) => {
       toast.success("Machine updated successfully");
     }
   };
+
   return (
     <>
       <div class="flex flex-col gap-6 p-4">

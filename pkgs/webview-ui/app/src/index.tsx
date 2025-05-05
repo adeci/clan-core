@@ -21,6 +21,8 @@ import { ModuleDetails as AddModule } from "./routes/modules/add";
 import { ApiTester } from "./api_test";
 import { IconVariant } from "./components/icon";
 import { Components } from "./routes/components";
+import { activeURI } from "./App";
+import { VarsStep } from "./routes/machines/install/vars-step";
 
 export const client = new QueryClient();
 
@@ -31,7 +33,6 @@ if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
     "Root element not found. Did you forget to add it to your index.html? Or maybe the id attribute got misspelled?",
   );
 }
-
 if (import.meta.env.DEV) {
   console.log("Development mode");
   // Load the debugger in development mode
@@ -155,6 +156,25 @@ export const routes: AppRoute[] = [
         label: "api_testing",
         hidden: false,
         component: () => <ApiTester />,
+      },
+      {
+        path: "/prompts",
+        label: "prompts",
+        hidden: false,
+        component: () => (
+          <VarsStep
+            machine_id="test"
+            dir={activeURI()}
+            // footer={<Footer />}
+            handleNext={(data) => {
+              // const prev = getValue(formStore, "2");
+              // setValue(formStore, "2", { ...prev, ...data });
+              // handleNext();
+              return;
+            }}
+            initial={{}}
+          />
+        ),
       },
       {
         path: "/components",
