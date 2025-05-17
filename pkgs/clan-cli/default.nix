@@ -175,6 +175,10 @@ pythonRuntime.pkgs.buildPythonApplication {
             # limit build cores to 16
             jobs="$((NIX_BUILD_CORES>16 ? 16 : NIX_BUILD_CORES))"
 
+            # used for tests without flakes
+            export NIXPKGS=${nixpkgs}
+            export NIX_SELECT=${nix-select}
+
             python -m pytest -m "not impure and not with_core" -n $jobs ./clan_cli/tests
             touch $out
           '';

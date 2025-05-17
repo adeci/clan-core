@@ -1,4 +1,6 @@
 import logging
+import os
+import subprocess
 
 import pytest
 from clan_cli.tests.fixtures_flakes import ClanFlake
@@ -361,6 +363,36 @@ def test_caching_works(flake: ClanFlake) -> None:
         assert tracked_build.call_count == 1
         my_flake.select("clanInternals.inventory.meta")
         assert tracked_build.call_count == 1
+
+
+def test_for_johannes() -> None:
+    nixpkgs = os.environ.get("NIXPKGS")
+    select = os.environ.get("NIX_SELECT")
+    output = subprocess.run(
+        [
+            "nix",
+            "build",
+            "--no-link",
+            "--print-out-paths",
+            "--impure",
+            "--expr",
+            f"""
+      let
+        nixpkgs = import {nixpkgs} {{}};
+        select = (import {select}/select.nix).select;
+        nixosSystem = nixpkgs.pkgs.nixos {{ config = {{
+          boot.loader.grub.device = "nodev";
+          fileSystems."/".device = "nodev";
+        }}; }};
+      in
+        select "config.system.build.toplevel" nixosSystem
+    """,
+        ],
+        capture_output=True,
+    )
+    toplevel = output.stdout.decode()
+    assert toplevel is not None
+    print(toplevel)
 
 
 # This test fails because the CI sandbox does not have the required packages to run the generators

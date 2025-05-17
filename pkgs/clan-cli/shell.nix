@@ -4,6 +4,7 @@
   clan-cli,
   mkShell,
   ruff,
+  self,
   self',
 }:
 
@@ -32,6 +33,10 @@ mkShell {
     export GIT_ROOT="$(git rev-parse --show-toplevel)"
     export PKG_ROOT="$GIT_ROOT/pkgs/clan-cli"
     export PYTHONWARNINGS=error
+
+    # used for tests without flakes
+    export NIXPKGS=${self.inputs.nixpkgs.outPath}
+    export NIX_SELECT=${self.inputs.nix-select.outPath}
 
     export CLAN_CORE_PATH="$GIT_ROOT"
 
