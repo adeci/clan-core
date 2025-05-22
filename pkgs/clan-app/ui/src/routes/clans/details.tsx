@@ -139,7 +139,7 @@ const EditClanForm = (props: EditClanFormProps) => {
 
 type GeneralData = SuccessQuery<"show_clan_meta">["data"];
 
-export const ClanDetails = () => {
+const ClanDetails = () => {
   const params = useParams();
   const clan_dir = window.atob(params.id);
   // Fetch general meta data
@@ -158,3 +158,5 @@ export const ClanDetails = () => {
     </>
   );
 };
+
+export default ClanDetails;

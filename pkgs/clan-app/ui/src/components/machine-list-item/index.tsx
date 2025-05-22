@@ -4,7 +4,7 @@ import { callApi, SuccessQuery } from "../../api";
 import { A, useNavigate } from "@solidjs/router";
 import { RndThumbnail } from "../noiseThumbnail";
 
-import { Filter } from "../../routes/machines";
+import { Filter } from "../../routes/machines/list";
 import { Typography } from "../Typography";
 import "./css/index.css";
 import { useClanContext } from "@/src/contexts/clan";

@@ -124,7 +124,7 @@ const ClanItem = (props: ClanItemProps) => {
   );
 };
 
-export const ClanList = () => {
+const ClanList = () => {
   const navigate = useNavigate();
   return (
     <div class="">
@@ -158,3 +158,5 @@ export const ClanList = () => {
     </div>
   );
 };
+
+export default ClanList;

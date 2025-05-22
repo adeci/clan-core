@@ -12,7 +12,7 @@ import Icon from "@/src/components/icon";
 import { useClanContext } from "@/src/contexts/clan";
 import { activeClanURI } from "@/src/stores/clan";
 
-export const ModuleDetails = () => {
+const ModuleDetails = () => {
   const params = useParams();
   const { activeClanURI } = useClanContext();
   const modulesQuery = createModulesQuery(activeClanURI());
@@ -31,6 +31,8 @@ export const ModuleDetails = () => {
     </div>
   );
 };
+
+export default ModuleDetails;
 
 function deepMerge(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

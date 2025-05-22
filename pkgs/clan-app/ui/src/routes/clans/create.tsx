@@ -17,7 +17,7 @@ type CreateForm = Meta & {
   template: string;
 };
 
-export const CreateClan = () => {
+const CreateClan = () => {
   const [formStore, { Form, Field }] = createForm<CreateForm>({
     initialValues: {
       name: "",
@@ -205,3 +205,5 @@ type Meta = Extract<
   OperationResponse<"show_clan_meta">,
   { status: "success" }
 >["data"];
+
+export default CreateClan;

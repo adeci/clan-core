@@ -230,7 +230,7 @@ const View = (props: ViewProps) => {
   );
 };
 
-export const ThreePlayground = () => {
+const ThreePlayground = () => {
   const [count, setCount] = createSignal(1);
   const [selected, setSelected] = createSignal<string>("");
 
@@ -269,3 +269,5 @@ export const ThreePlayground = () => {
     </div>
   );
 };
+
+export default ThreePlayground;

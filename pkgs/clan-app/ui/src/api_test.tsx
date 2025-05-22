@@ -18,7 +18,7 @@ interface APITesterForm extends FieldValues {
   payload: string;
 }
 
-export const ApiTester = () => {
+const ApiTester = () => {
   const [persistedTestData, setPersistedTestData] = makePersisted(
     createSignal<APITesterForm>(),
     {
@@ -103,3 +103,5 @@ export const ApiTester = () => {
     </div>
   );
 };
+
+export default ApiTester;

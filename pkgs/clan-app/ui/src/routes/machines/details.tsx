@@ -699,7 +699,7 @@ const MachineForm = (props: MachineDetailsProps) => {
   );
 };
 
-export const MachineDetails = () => {
+const MachineDetails = () => {
   const params = useParams();
   const { activeClanURI } = useClanContext();
 
@@ -735,3 +735,5 @@ export const MachineDetails = () => {
     </>
   );
 };
+
+export default MachineDetails;
