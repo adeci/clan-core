@@ -1,12 +1,12 @@
 import { For, type JSX, Show } from "solid-js";
 import { RouteSectionProps } from "@solidjs/router";
-import { AppRoute, routes } from "@/src";
 import { SidebarHeader } from "./SidebarHeader";
 import { SidebarListItem } from "./SidebarListItem";
 import { Typography } from "../Typography";
 import "./css/sidebar.css";
 import Icon, { IconVariant } from "../icon";
 import { clanMetaQuery } from "@/src/queries/clan-meta";
+import routes, { AppRoute } from "@/src/routes";
 
 export const SidebarSection = (props: {
   title: string;
