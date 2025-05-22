@@ -7,7 +7,7 @@ import { createForm, FieldValues, SubmitHandler } from "@modular-forms/solid";
 import { SelectInput } from "@/src/Form/fields/Select";
 import { useClanContext } from "@/src/contexts/clan";
 
-export const ModuleDetails = () => {
+const ModuleDetails = () => {
   const params = useParams();
   const { activeClanURI } = useClanContext();
   const modulesQuery = createModulesQuery(activeClanURI());
@@ -26,6 +26,8 @@ export const ModuleDetails = () => {
     </div>
   );
 };
+
+export default ModuleDetails;
 
 interface AddModuleProps {
   data: ModuleInfo;

@@ -46,7 +46,7 @@ export interface FlashFormValues extends FieldValues {
   sshKeys: File[]; // This field will use CustomFileField
 }
 
-export const Flash = () => {
+const Flash = () => {
   const [formStore, { Form, Field }] = createForm<FlashFormValues>({
     initialValues: {
       machine: {
@@ -436,3 +436,5 @@ export const Flash = () => {
     </>
   );
 };
+
+export default Flash;

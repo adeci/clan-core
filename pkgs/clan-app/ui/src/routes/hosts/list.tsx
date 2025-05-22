@@ -8,7 +8,7 @@ type ServiceModel = Extract<
   { status: "success" }
 >["data"]["services"];
 
-export const HostList: Component = () => {
+const HostList: Component = () => {
   const [services, setServices] = createSignal<ServiceModel>();
 
   return (
@@ -74,3 +74,5 @@ export const HostList: Component = () => {
     </div>
   );
 };
+
+export default HostList;

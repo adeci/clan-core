@@ -18,7 +18,7 @@ export interface Filter {
   tags: string[];
 }
 
-export const MachineListView: Component = () => {
+const MachineListView: Component = () => {
   const queryClient = useQueryClient();
 
   const [filter, setFilter] = createSignal<Filter>({ tags: [] });
@@ -213,3 +213,5 @@ export const MachineListView: Component = () => {
     </>
   );
 };
+
+export default MachineListView;

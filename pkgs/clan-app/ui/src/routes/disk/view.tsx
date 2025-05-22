@@ -2,7 +2,7 @@ import { callApi } from "@/src/api";
 import { useQuery } from "@tanstack/solid-query";
 import { useClanContext } from "@/src/contexts/clan";
 
-export function DiskView() {
+const DiskView = () => {
   const { activeClanURI } = useClanContext();
 
   const query = useQuery(() => ({
@@ -28,4 +28,6 @@ export function DiskView() {
       </p>
     </div>
   );
-}
+};
+
+export default DiskView;

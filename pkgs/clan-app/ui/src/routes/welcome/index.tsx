@@ -3,7 +3,7 @@ import { registerClan } from "@/src/hooks";
 import { useNavigate } from "@solidjs/router";
 import { useClanContext } from "@/src/contexts/clan";
 
-export const Welcome = () => {
+const Welcome = () => {
   const navigate = useNavigate();
   const { setActiveClanURI } = useClanContext();
   return (
@@ -35,3 +35,5 @@ export const Welcome = () => {
     </div>
   );
 };
+
+export default Welcome;

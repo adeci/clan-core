@@ -203,7 +203,7 @@ export const VarsStep = (props: VarsStepProps) => {
   );
 };
 
-export const VarsPage = () => {
+const VarsPage = () => {
   const params = useParams();
   const navigate = useNavigate();
   const { activeClanURI } = useClanContext();
@@ -249,3 +249,5 @@ export const VarsPage = () => {
     </div>
   );
 };
+
+export default VarsPage;

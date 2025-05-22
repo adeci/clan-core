@@ -8,7 +8,7 @@ const disabled = [false, true];
 const readOnly = [false, true];
 const error = [false, true];
 
-export const Components = () => {
+const Components = () => {
   const [formStore, { Form, Field }] = createForm<{ ef: string }>({});
   return (
     <>
@@ -116,3 +116,5 @@ export const Components = () => {
     </>
   );
 };
+
+export default Components;

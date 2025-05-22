@@ -16,7 +16,7 @@ import { useClanContext } from "@/src/contexts/clan";
 
 type CreateMachineForm = OperationArgs<"create_machine">;
 
-export function CreateMachine() {
+const CreateMachine = () => {
   const navigate = useNavigate();
   const { activeClanURI } = useClanContext();
 
@@ -189,4 +189,6 @@ export function CreateMachine() {
       </div>
     </>
   );
-}
+};
+
+export default CreateMachine;

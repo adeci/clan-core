@@ -1,21 +1,6 @@
 import { Navigate, RouteDefinition } from "@solidjs/router";
-import {
-  CreateMachine,
-  MachineDetails,
-  MachineListView,
-} from "@/src/routes/machines";
-import { VarsPage } from "@/src/routes/machines/install/vars-step";
-import { ClanDetails, ClanList, CreateClan } from "@/src/routes/clans";
-import { ModuleList } from "@/src/routes/modules/list";
-import { ModuleDetails } from "@/src/routes/modules/details";
-import { ModuleDetails as AddModule } from "@/src/routes/modules/add";
-import { Flash } from "@/src/routes/flash/view";
-import { Welcome } from "@/src/routes/welcome";
-import { HostList } from "@/src/routes/hosts/view";
-import { ThreePlayground } from "@/src/three";
-import { ApiTester } from "@/src/api_test";
-import { Components } from "@/src/routes/components";
 import { IconVariant } from "@/src/components/icon";
+import { lazy } from "solid-js";
 
 export type AppRoute = Omit<RouteDefinition, "children"> & {
   label: string;
@@ -23,6 +8,8 @@ export type AppRoute = Omit<RouteDefinition, "children"> & {
   children?: AppRoute[];
   hidden?: boolean;
 };
+
+const lazyLoad = (path: string) => lazy(() => import(path));
 
 const routes: AppRoute[] = [
   {
@@ -39,24 +26,24 @@ const routes: AppRoute[] = [
       {
         path: "/",
         label: "Overview",
-        component: () => <MachineListView />,
+        component: lazyLoad("./machines/list"),
       },
       {
         path: "/create",
         label: "Create",
-        component: () => <CreateMachine />,
+        component: lazyLoad("./machines/create"),
       },
       {
         path: "/:id",
         label: "Details",
         hidden: true,
-        component: () => <MachineDetails />,
+        component: lazyLoad("./machines/details"),
       },
       {
         path: "/:id/vars",
         label: "Vars",
         hidden: true,
-        component: () => <VarsPage />,
+        component: lazyLoad("./machines/install/vars-step"),
       },
     ],
   },
@@ -69,18 +56,18 @@ const routes: AppRoute[] = [
       {
         path: "/",
         label: "Overview",
-        component: () => <ClanList />,
+        component: lazyLoad("./clans/list"),
       },
       {
         path: "/create",
         label: "Create",
-        component: () => <CreateClan />,
+        component: lazyLoad("./clans/create"),
       },
       {
         path: "/:id",
         label: "Details",
         hidden: true,
-        component: () => <ClanDetails />,
+        component: lazyLoad("./clans/details"),
       },
     ],
   },
@@ -92,19 +79,19 @@ const routes: AppRoute[] = [
       {
         path: "/",
         label: "App Store",
-        component: () => <ModuleList />,
+        component: lazyLoad("./modules/list"),
       },
       {
         path: "details/:id",
         label: "Details",
         hidden: true,
-        component: () => <ModuleDetails />,
+        component: lazyLoad("./modules/details"),
       },
       {
         path: "/add/:id",
         label: "Details",
         hidden: true,
-        component: () => <AddModule />,
+        component: lazyLoad("./modules/add"),
       },
     ],
   },
@@ -116,7 +103,7 @@ const routes: AppRoute[] = [
       {
         path: "/flash",
         label: "Flash Installer",
-        component: () => <Flash />,
+        component: lazyLoad("./flash/view"),
       },
     ],
   },
@@ -124,7 +111,7 @@ const routes: AppRoute[] = [
     path: "/welcome",
     label: "",
     hidden: true,
-    component: () => <Welcome />,
+    component: lazyLoad("./welcome"),
   },
   {
     path: "/internal-dev",
@@ -133,24 +120,24 @@ const routes: AppRoute[] = [
       {
         path: "/hosts",
         label: "Local Hosts",
-        component: () => <HostList />,
+        component: lazyLoad("./hosts/list"),
       },
       {
         path: "/3d",
         label: "3D-Playground",
-        component: () => <ThreePlayground />,
+        component: lazyLoad("../three"),
       },
       {
         path: "/api_testing",
         label: "api_testing",
         hidden: false,
-        component: () => <ApiTester />,
+        component: lazyLoad("../api_test"),
       },
       {
         path: "/components",
         label: "Components",
         hidden: false,
-        component: () => <Components />,
+        component: lazyLoad("./components"),
       },
     ],
   },

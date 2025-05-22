@@ -108,7 +108,7 @@ const ModuleItem = (props: {
   );
 };
 
-export const ModuleList = () => {
+const ModuleList = () => {
   const queryClient = useQueryClient();
   const { activeClanURI } = useClanContext();
   const modulesQuery = createModulesQuery(activeClanURI(), {
@@ -214,3 +214,5 @@ export const ModuleList = () => {
     </>
   );
 };
+
+export default ModuleList;
