@@ -1,0 +1,10 @@
+textarea {
+  @apply flex w-full;
+  @apply border rounded-md p-2;
+  @apply text-xs;
+
+  color: var(--clr-fg-inv-3);
+  background-color: var(--clr-bg-inv-5);
+
+  font-family: "VT323", monospace;
+}
