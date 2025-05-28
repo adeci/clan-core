@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+"""
+Clan SSH Askpass - Password prompt utility for SSH
+
+This script can be used as SSH_ASKPASS for SSH password prompts when a terminal
+is not available. It automatically selects the appropriate GUI or terminal-based
+password prompt based on the environment.
+
+Usage:
+  1. As SSH_ASKPASS environment variable:
+     $ export SSH_ASKPASS=/path/to/this/script
+     $ ssh-add
+
+  2. Directly (only for testing):
+     $ ./ssh_askpass
+
+The script will prompt for a password using:
+  - Zenity for GUI environments (DISPLAY/WAYLAND_DISPLAY set or on macOS)
+  - Dialog for terminal environments (no display detected)
+
+Dependencies are automatically installed via nix-shell as needed.
+"""
+
+import subprocess
+import sys
+import os
+from pathlib import Path
+
+# Add parent directory to path when script is executed directly
+script_dir = Path(__file__).parent
+clan_cli_dir = script_dir.parent.parent  # pkgs/clan-cli
+if str(clan_cli_dir) not in sys.path:
+    sys.path.insert(0, str(clan_cli_dir))
+
+# Import the actual implementation
+from clan_lib.ssh.password_prompt import get_password_command
+
+
+def main() -> int:
+    """Execute password prompt and print password to stdout."""
+    try:
+        # Get the appropriate command for the environment
+        cmd = get_password_command()
+
+        # Run the command and capture the password
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, text=True, check=True)
+
+        # Print the password to stdout (will be read by SSH)
+        print(result.stdout.strip())
+    except subprocess.CalledProcessError:
+        # User canceled the password dialog
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    else:
+        return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

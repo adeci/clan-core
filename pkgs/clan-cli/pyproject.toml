@@ -7,7 +7,7 @@ name = "clan"
 description = "clan cli tool"
 dynamic = ["version"]
 scripts = { clan = "clan_cli:main" }
-license = { text = "MIT" }
+license = "MIT"
 
 [project.urls]
 Homepage = "https://clan.lol/"
@@ -29,6 +29,7 @@ clan_lib = [
     "clan_core_templates/**/*",
     "**/allowed-packages.json",
     "ssh/*.sh",
+    "ssh/ssh_askpass",
 ]
 
 [tool.pytest.ini_options]

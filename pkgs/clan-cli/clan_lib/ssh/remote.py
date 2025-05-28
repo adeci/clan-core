@@ -19,12 +19,16 @@ from clan_lib.colors import AnsiColor
 from clan_lib.errors import ClanError  # Assuming these are available
 from clan_lib.nix import nix_shell
 from clan_lib.ssh.parse import parse_deployment_address
+from clan_lib.ssh.password_prompt import get_password_command
 from clan_lib.ssh.sudo_askpass_proxy import SudoAskpassProxy
 
 cmdlog = logging.getLogger(__name__)
 
 # Seconds until a message is printed when _run produces no output.
 NO_OUTPUT_TIMEOUT = 20
+
+# Path to the SSH_ASKPASS script (direct path to the script)
+SSH_ASKPASS_PATH = str(Path(__file__).parent / "ssh_askpass")
 
 
 @dataclass(frozen=True)
@@ -137,27 +141,8 @@ class Remote:
             yield self
             return
 
-        if (
-            os.environ.get("DISPLAY")
-            or os.environ.get("WAYLAND_DISPLAY")
-            or sys.platform == "darwin"
-        ):
-            command = ["zenity", "--password", "--title", "%title%"]
-            dependencies = ["zenity"]
-        else:
-            command = [
-                "dialog",
-                "--stdout",
-                "--insecure",
-                "--title",
-                "%title%",
-                "--passwordbox",
-                "",
-                "10",
-                "50",
-            ]
-            dependencies = ["dialog"]
-        proxy = SudoAskpassProxy(self, nix_shell(dependencies, command))
+        cmd = get_password_command(title="%title%", message="")
+        proxy = SudoAskpassProxy(self, cmd)
         try:
             askpass_path = proxy.run()
             yield Remote(
@@ -196,6 +181,12 @@ class Remote:
             extra_env = {}
         if opts is None:
             opts = RunOpts()
+
+        if not self.password:
+            # Set up environment for SSH_ASKPASS if we don't have a password
+            opts.env = opts.env or os.environ.copy()
+            opts.env["SSH_ASKPASS"] = SSH_ASKPASS_PATH
+            opts.env["SSH_ASKPASS_REQUIRE"] = "force"
 
         sudo = []
         if self._askpass_path is not None:
@@ -252,6 +243,7 @@ class Remote:
             "--",
             " ".join(map(quote, cmd)),
         ]
+        breakpoint()  # For debugging purposes, remove in production
 
         return run(ssh_cmd, opts)
 
@@ -260,11 +252,14 @@ class Remote:
         env: dict[str, str] | None = None,
         control_master: bool = True,
     ) -> dict[str, str]:
+        """Return environment variables for nix commands that use SSH."""
         if env is None:
             env = {}
-        env["NIX_SSHOPTS"] = " ".join(
-            self.ssh_cmd_opts(control_master=control_master)  # Renamed
-        )
+        env["NIX_SSHOPTS"] = " ".join(self.ssh_cmd_opts(control_master=control_master))
+        # Set SSH_ASKPASS environment variable if not using password directly
+        if not self.password:
+            env["SSH_ASKPASS"] = SSH_ASKPASS_PATH
+            env["SSH_ASKPASS_REQUIRE"] = "force"
         return env
 
     def ssh_cmd_opts(
@@ -298,10 +293,12 @@ class Remote:
         self, verbose_ssh: bool = False, tty: bool = False, control_master: bool = True
     ) -> list[str]:
         packages = []
-        password_args = []
+        env_prefix = []
+
+        # If we have a password, use sshpass for direct entry
         if self.password:
             packages.append("sshpass")
-            password_args = ["sshpass", "-p", self.password]
+            env_prefix = ["sshpass", "-p", self.password]
 
         current_ssh_opts = self.ssh_cmd_opts(control_master=control_master)
         if verbose_ssh or self.verbose_ssh:
@@ -316,7 +313,7 @@ class Remote:
             )
 
         cmd = [
-            *password_args,
+            *env_prefix,
             "ssh",
             self.target,
             *current_ssh_opts,
@@ -324,8 +321,16 @@ class Remote:
         return nix_shell(packages, cmd)
 
     def interactive_ssh(self) -> None:
+        """Run an interactive SSH session to the remote host."""
         cmd_list = self.ssh_cmd(tty=True, control_master=False)
-        subprocess.run(cmd_list)
+
+        # Set SSH_ASKPASS environment variable if no password is provided
+        env = os.environ.copy()
+        if not self.password:
+            env["SSH_ASKPASS"] = SSH_ASKPASS_PATH
+            env["SSH_ASKPASS_REQUIRE"] = "force"
+
+        subprocess.run(cmd_list, env=env)
 
 
 def is_ssh_reachable(host: Remote) -> bool:
