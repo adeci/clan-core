@@ -24,6 +24,7 @@ import { Components } from "./routes/components";
 import { VarsPage } from "./routes/machines/install/vars-step";
 import { ThreePlayground } from "./three";
 import { ClanProvider } from "./contexts/clan";
+import { CubeScene } from "./3d";
 
 export const client = new QueryClient();
 
@@ -161,7 +162,7 @@ export const routes: AppRoute[] = [
       {
         path: "/3d",
         label: "3D-Playground",
-        component: () => <ThreePlayground />,
+        component: () => <CubeScene />,
       },
       {
         path: "/api_testing",
