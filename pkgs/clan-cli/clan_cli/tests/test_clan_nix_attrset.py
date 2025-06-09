@@ -93,17 +93,22 @@ def test_clan_core_templates(
     ]
     clan_core_template_keys = list(clan_core_templates.keys())
 
-    expected_templates = ["default", "flake-parts", "minimal", "minimal-flake-parts"]
-    assert clan_core_template_keys == expected_templates
+    expected_clan_templates = [
+        "default",
+        "flake-parts",
+        "minimal",
+        "minimal-flake-parts",
+    ]
+    assert clan_core_template_keys == expected_clan_templates
 
     vlist_temps = list_templates("clan", clan_dir)
     list_template_keys = list(vlist_temps.inputs[InputName("clan-core")].keys())
-    assert list_template_keys == expected_templates
+    assert list_template_keys == expected_clan_templates
 
     default_template = get_template(
         TemplateName("default"),
         "clan",
-        input_name=None,
+        input_name="clan-core",
         clan_dir=clan_dir,
     )
 

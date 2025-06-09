@@ -211,6 +211,7 @@ def get_template(
     log.info(
         f"Getting {template_type} template '{template_name}' from '{input_name}' in '{clan_dir}'"
     )
+    clan_exports = get_clan_nix_attrset(clan_dir)
 
     # Helper function to search for a specific template within a dictionary of templates
     def get_template(
@@ -219,10 +220,8 @@ def get_template(
         if template_name in templates:
             return templates[template_name]
 
-        msg = f"Template '{template_name}' not found in templates of type '{template_type}'"
+        msg = f"{template_type} template '{template_name}' not found in '{input_name}'"
         raise ClanError(msg)
-
-    clan_exports = get_clan_nix_attrset(clan_dir)
 
     template: TemplatePath | None = None
 
