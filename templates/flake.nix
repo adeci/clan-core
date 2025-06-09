@@ -1,3 +1,5 @@
+# THIS FILE IS A TEST FIXTURE
+# DO NOT EDIT UNLESS YOU WANT TO EDIT THE TESTS
 {
   outputs =
     { ... }:
