@@ -59,6 +59,7 @@ def test_add_module_to_inventory(
         opts = CreateOptions(
             clan_dir=Flake(str(base_path)),
             machine=Machine(name="machine1", tags=[], deploy=MachineDeploy()),
+            input_name="clan-core",
         )
 
         create_machine(opts)

@@ -184,7 +184,7 @@ def get_template(
         if template_name in templates:
             return templates[template_name]
 
-        msg = f"{template_type} template '{template_name}' not found in '{input_name}'"
+        msg = f"{template_type} template '{template_name}' not found in '{input_name or 'self'}' (Flake: '{clan_dir}')"
         raise ClanError(msg)
 
     template: TemplatePath | None = None

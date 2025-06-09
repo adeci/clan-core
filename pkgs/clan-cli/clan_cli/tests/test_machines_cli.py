@@ -22,6 +22,8 @@ def test_machine_subcommands(
         [
             "machines",
             "create",
+            "--input",
+            "clan-core",
             "--flake",
             str(test_flake_with_core.path),
             "machine1",
@@ -77,7 +79,16 @@ def test_machine_delete(
 
     # create a couple machines with their keys
     for name, key in (("my-machine", machine_key), ("my-machine2", machine2_key)):
-        cli.run(["machines", "create", f"--flake={flake.path}", name])
+        cli.run(
+            [
+                "machines",
+                "create",
+                f"--flake={flake.path}",
+                "--input",
+                "clan-core",
+                name,
+            ]
+        )
         add_machine_key = [
             "secrets",
             "machines",
