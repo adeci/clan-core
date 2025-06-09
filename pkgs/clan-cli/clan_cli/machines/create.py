@@ -67,7 +67,8 @@ def create_machine(
         input_name=opts.input_name,
         clan_dir=opts.clan_dir,
     )
-    log.info(f"Found template '{template.name}' in '{template.input_variant}'")
+    # TODO: this logging should happen in the template handler
+    log.info(f"Found template '{template.name}' in '{opts.input_name or 'self'}'")
 
     machine_name = opts.machine.get("name")
     if opts.template_name in list_full_machines(

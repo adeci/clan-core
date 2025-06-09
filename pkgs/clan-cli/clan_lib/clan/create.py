@@ -58,7 +58,8 @@ def create_clan(opts: CreateOptions) -> None:
         input_name=opts.input_name,
         clan_dir=opts.src_flake,
     )
-    log.info(f"Found template '{template.name}' in '{template.input_variant}'")
+    # TODO: This logging should be moved to the get_template function
+    log.info(f"Found template '{template.name}' in '{opts.input_name or 'self'}'")
 
     if dest.exists():
         dest /= template.name

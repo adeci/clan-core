@@ -13,17 +13,6 @@ log = logging.getLogger(__name__)
 InputName = NewType("InputName", str)
 
 
-@dataclass
-class InputVariant:
-    input_name: InputName | None
-
-    def is_self(self) -> bool:
-        return self.input_name is None
-
-    def __str__(self) -> str:
-        return self.input_name or "self"
-
-
 TemplateName = NewType("TemplateName", str)
 TemplateType = Literal["clan", "disko", "machine"]
 
@@ -38,7 +27,6 @@ class TemplatePath(Template):
 
 @dataclass
 class FoundTemplate:
-    input_variant: InputVariant
     name: TemplateName
     src: TemplatePath
 
@@ -77,6 +65,7 @@ def apply_fallback_structure(attrset: dict[str, Any]) -> ClanAttrset:
     return cast(ClanAttrset, result)
 
 
+# TODO: remove this function and use clan.select instead
 def get_clan_nix_attrset(clan_dir: Flake | None = None) -> ClanExports:
     """
     Get the clan nix attrset from a flake, with fallback structure applied.
@@ -139,31 +128,6 @@ def get_clan_nix_attrset(clan_dir: Flake | None = None) -> ClanExports:
     }
 
     return clan_exports
-
-
-@dataclass
-class InputPrio:
-    """
-    Strategy for prioritizing inputs when searching for a template
-    """
-
-    input_names: tuple[str, ...]  # Tuple of input names (ordered priority list)
-    prioritize_self: bool = True  # Whether to prioritize "self" first
-
-    @staticmethod
-    def self_only() -> "InputPrio":
-        # Only consider "self" (no external inputs)
-        return InputPrio(prioritize_self=True, input_names=())
-
-    @staticmethod
-    def try_inputs(input_names: tuple[str, ...]) -> "InputPrio":
-        # Only consider the specified external inputs
-        return InputPrio(prioritize_self=False, input_names=input_names)
-
-    @staticmethod
-    def try_self_then_inputs(input_names: tuple[str, ...]) -> "InputPrio":
-        # Consider "self" first, then the specified external inputs
-        return InputPrio(prioritize_self=True, input_names=input_names)
 
 
 @dataclass
@@ -247,7 +211,6 @@ def get_template(
     realize_nix_path(clan_dir, template["path"])
 
     return FoundTemplate(
-        input_variant=InputVariant(InputName(input_name) if input_name else None),
         src=template,
         name=template_name,
     )
