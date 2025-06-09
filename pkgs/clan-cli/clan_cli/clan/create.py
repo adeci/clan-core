@@ -4,9 +4,6 @@ import logging
 from pathlib import Path
 
 from clan_lib.clan.create import CreateOptions, create_clan
-from clan_lib.templates import (
-    InputPrio,
-)
 
 log = logging.getLogger(__name__)
 
@@ -16,18 +13,8 @@ def register_create_parser(parser: argparse.ArgumentParser) -> None:
         "--input",
         type=str,
         help="""Flake input name to use as template source
-        can be specified multiple times, inputs are tried in order of definition
-        Example: --input clan --input clan-core
+        Example: --input clan-core
         """,
-        action="append",
-        default=[],
-    )
-
-    parser.add_argument(
-        "--no-self",
-        help="Do not look into own flake for templates",
-        action="store_true",
-        default=False,
     )
 
     parser.add_argument(
@@ -59,17 +46,9 @@ def register_create_parser(parser: argparse.ArgumentParser) -> None:
     )
 
     def create_flake_command(args: argparse.Namespace) -> None:
-        if len(args.input) == 0:
-            args.input = ["clan", "clan-core"]
-
-        if args.no_self:
-            input_prio = InputPrio.try_inputs(tuple(args.input))
-        else:
-            input_prio = InputPrio.try_self_then_inputs(tuple(args.input))
-
         create_clan(
             CreateOptions(
-                input_prio=input_prio,
+                input_name=args.input,
                 dest=args.path,
                 template_name=args.template,
                 setup_git=not args.no_git,

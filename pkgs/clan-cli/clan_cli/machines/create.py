@@ -14,7 +14,6 @@ from clan_lib.nix_models.clan import InventoryMachineDeploy as MachineDeploy
 from clan_lib.persist.inventory_store import InventoryStore
 from clan_lib.persist.util import set_value_by_path
 from clan_lib.templates import (
-    InputPrio,
     TemplateName,
     get_template,
 )
@@ -31,7 +30,7 @@ class CreateOptions:
     clan_dir: Flake
     machine: InventoryMachine
     target_host: str | None = None
-    input_prio: InputPrio | None = None
+    input_name: str | None = None
     template_name: str | None = None
 
 
@@ -65,7 +64,7 @@ def create_machine(
     template = get_template(
         TemplateName(opts.template_name),
         "machine",
-        input_prio=opts.input_prio,
+        input_name=opts.input_name,
         clan_dir=opts.clan_dir,
     )
     log.info(f"Found template '{template.name}' in '{template.input_variant}'")
@@ -159,21 +158,13 @@ def create_command(args: argparse.Namespace) -> None:
         )
         raise ClanError(msg, description=description)
 
-    if len(args.input) == 0:
-        args.input = ["clan", "clan-core"]
-
-    if args.no_self:
-        input_prio = InputPrio.try_inputs(tuple(args.input))
-    else:
-        input_prio = InputPrio.try_self_then_inputs(tuple(args.input))
-
     machine = InventoryMachine(
         name=args.machine_name,
         tags=args.tags,
         deploy=MachineDeploy(targetHost=args.target_host),
     )
     opts = CreateOptions(
-        input_prio=input_prio,
+        input_name=args.input,
         clan_dir=clan_dir,
         machine=machine,
         template_name=args.template_name,
@@ -210,15 +201,6 @@ def register_create_parser(parser: argparse.ArgumentParser) -> None:
         "--input",
         type=str,
         help="""Flake input name to use as template source
-        can be specified multiple times, inputs are tried in order of definition
-        Example: --input clan --input clan-core
+            Example: --input clan-core
         """,
-        action="append",
-        default=[],
-    )
-    parser.add_argument(
-        "--no-self",
-        help="Do not look into own flake for templates",
-        action="store_true",
-        default=False,
     )

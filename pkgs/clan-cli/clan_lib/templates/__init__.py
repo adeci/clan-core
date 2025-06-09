@@ -199,8 +199,7 @@ def list_templates(
 def get_template(
     template_name: TemplateName,
     template_type: TemplateType,
-    *,
-    input_prio: InputPrio | None = None,
+    input_name: str | None,
     clan_dir: Flake | None = None,
 ) -> FoundTemplate:
     """
@@ -209,55 +208,39 @@ def get_template(
 
     if not clan_dir:
         clan_dir = Flake(str(clan_templates()))
-
-    log.info(f"Get template in {clan_dir}")
-
-    log.info(f"Searching for template '{template_name}' of type '{template_type}'")
-
-    # Set default priority strategy if none is provided
-    if input_prio is None:
-        input_prio = InputPrio.try_self_then_inputs(("clan-core",))
+    log.info(
+        f"Getting {template_type} template '{template_name}' from '{input_name}' in '{clan_dir}'"
+    )
 
     # Helper function to search for a specific template within a dictionary of templates
-    def find_template(
+    def get_template(
         template_name: TemplateName, templates: dict[TemplateName, TemplatePath]
     ) -> TemplatePath | None:
         if template_name in templates:
             return templates[template_name]
-        return None
 
-    # Initialize variables for the search results
-    template: TemplatePath | None = None
-    input_name: InputName | None = None
+        msg = f"Template '{template_name}' not found in templates of type '{template_type}'"
+        raise ClanError(msg)
+
     clan_exports = get_clan_nix_attrset(clan_dir)
 
-    # Step 1: Check "self" first, if prioritize_self is enabled
-    if input_prio.prioritize_self:
-        log.info(f"Checking 'self' for template '{template_name}'")
-        template = find_template(
+    template: TemplatePath | None = None
+
+    if not input_name:
+        template = get_template(
             template_name, clan_exports["self"]["templates"][template_type]
         )
 
-    # Step 2: Otherwise, check the external inputs if no match is found
-    if not template and input_prio.input_names:
-        log.info(f"Checking external inputs for template '{template_name}'")
-        for input_name_str in input_prio.input_names:
-            input_name = InputName(input_name_str)
-            log.debug(f"Searching in '{input_name}' for template '{template_name}'")
+    if input_name:
+        if input_name not in clan_exports["inputs"]:
+            msg = f"Input '{input_name}' not found in clan exports"
+            raise ClanError(msg)
 
-            if input_name not in clan_exports["inputs"]:
-                log.debug(f"Skipping input '{input_name}', not found in '{clan_dir}'")
-                continue
+        template = get_template(
+            template_name,
+            clan_exports["inputs"][InputName(input_name)]["templates"][template_type],
+        )
 
-            template = find_template(
-                template_name,
-                clan_exports["inputs"][input_name]["templates"][template_type],
-            )
-            if template:
-                log.debug(f"Found template '{template_name}' in input '{input_name}'")
-                break
-
-    # Step 3: Raise an error if the template wasn't found
     if not template:
         msg = f"Template '{template_name}' could not be found in '{clan_dir}'"
         raise ClanError(msg)
@@ -265,5 +248,7 @@ def get_template(
     realize_nix_path(clan_dir, template["path"])
 
     return FoundTemplate(
-        input_variant=InputVariant(input_name), src=template, name=template_name
+        input_variant=InputVariant(InputName(input_name) if input_name else None),
+        src=template,
+        name=template_name,
     )

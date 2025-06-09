@@ -103,7 +103,7 @@ def test_clan_core_templates(
     default_template = get_template(
         TemplateName("default"),
         "clan",
-        input_prio=None,
+        input_name=None,
         clan_dir=clan_dir,
     )
 

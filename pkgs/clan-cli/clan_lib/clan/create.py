@@ -9,7 +9,6 @@ from clan_lib.flake import Flake
 from clan_lib.nix import nix_command, nix_metadata, nix_shell
 from clan_lib.persist.inventory_store import InventorySnapshot, InventoryStore
 from clan_lib.templates import (
-    InputPrio,
     TemplateName,
     get_template,
 )
@@ -22,8 +21,14 @@ log = logging.getLogger(__name__)
 class CreateOptions:
     dest: Path
     template_name: str
+    # The input name to use for the template.
+    # Self looks into the clan flake itself.
+    # Most people would set it to "clan" or "clan-core"
+    # This must be refactored before merging, to allow using templates from clan-core by default.
+    # Since this is the most common use case.
+    input_name: str | None = None
+
     src_flake: Flake | None = None
-    input_prio: InputPrio | None = None
     setup_git: bool = True
     initial: InventorySnapshot | None = None
     update_clan: bool = True
@@ -50,7 +55,7 @@ def create_clan(opts: CreateOptions) -> None:
     template = get_template(
         TemplateName(opts.template_name),
         "clan",
-        input_prio=opts.input_prio,
+        input_name=opts.input_name,
         clan_dir=opts.src_flake,
     )
     log.info(f"Found template '{template.name}' in '{template.input_variant}'")
