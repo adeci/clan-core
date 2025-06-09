@@ -100,7 +100,7 @@ def install_machine(opts: InstallOptions) -> None:
                 )
 
         if opts.no_reboot:
-            cmd.append("--no-reboot")
+            cmd.extend(("--phases", "kexec,disko,install"))
 
         if opts.phases:
             cmd += ["--phases", str(opts.phases)]
