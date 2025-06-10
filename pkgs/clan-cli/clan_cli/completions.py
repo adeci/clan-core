@@ -5,10 +5,12 @@ import subprocess
 import threading
 from collections.abc import Callable, Iterable
 from types import ModuleType
-from typing import Any
+from typing import Any, cast
 
 from clan_lib.cmd import run
 from clan_lib.nix import nix_eval
+from clan_lib.persist.inventory_store import InventoryStore
+from clan_lib.flake.flake import Flake
 
 """
 This module provides dynamic completions.
@@ -311,19 +313,12 @@ def complete_tags(
                 flake = clan_dir_result
             else:
                 flake = "."
-            computed_tags_result = json.loads(
-                run(
-                    nix_eval(
-                        flags=[
-                            f"{flake}#clanInternals.inventory.tags",
-                            "--apply",
-                            "builtins.attrNames",
-                        ],
-                    ),
-                ).stdout.strip()
-            )
 
-            tags.extend(computed_tags_result)
+            inventory_store = InventoryStore(Flake(str(flake)))
+            inventory = inventory_store.get_readonly_raw()
+            if "tags" in inventory:
+                tags.extend(inventory["tags"].keys())
+
         except subprocess.CalledProcessError:
             pass
 
@@ -334,18 +329,15 @@ def complete_tags(
                 flake = clan_dir_result
             else:
                 flake = "."
-            services_tags_result = json.loads(
-                run(
-                    nix_eval(
-                        flags=[
-                            f"{flake}#clanInternals.inventory.services",
-                        ],
-                    ),
-                ).stdout.strip()
-            )
+            inventory_store = InventoryStore(Flake(str(flake)))
+            inventory = inventory_store.get_readonly_raw()
+            services_tags_result = inventory.get("services")
+            if services_tags_result is None:
+                return
+
             for service in services_tags_result.values():
-                for environment in service.values():
-                    roles = environment.get("roles", {})
+                for instance in service.values():
+                    roles = cast(Any, instance).get("roles", {})
                     for role_details in roles.values():
                         services_tags += role_details.get("tags", [])
 

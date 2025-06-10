@@ -198,7 +198,7 @@ in
         options = {
           # Those options are interfaced by the CLI
           # We don't specify the type here, for better performance.
-          inventory = lib.mkOption { type = lib.types.raw; };
+          inventory = lib.mkOption { type = lib.types.raw; apply = lib.warn "The 'clanInternals.inventory' option is deprecated, use 'clanInternals.inventoryClass' instead."; };
           # all exported clan templates from this clan
           templates = lib.mkOption { type = lib.types.raw; };
           # all exported clan modules from this clan
