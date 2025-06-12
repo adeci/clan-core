@@ -16,7 +16,7 @@
             & > .trigger {
 
                 @apply inline-flex items-center justify-between w-full;
-                @apply text-justify text-xs font-medium text-left uppercase fg-inv-3;
+                @apply text-xs font-medium text-left uppercase fg-inv-3;
 
                 &[data-expanded] > .icon {
                     transform: rotate(180deg);
