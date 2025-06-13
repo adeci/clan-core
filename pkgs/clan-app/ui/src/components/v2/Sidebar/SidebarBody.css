@@ -5,6 +5,43 @@ div.sidebar-body {
     @apply h-screen;
 
     background:
-            linear-gradient(180deg, theme(colors.primary.800) 0%, theme(colors.primary.900) 100%);
-    backdrop-filter: blur(8px);
+            linear-gradient(180deg, theme(colors.primary.700) 0%, theme(colors.primary.900) 100%);
+    backdrop-filter: blur(4px);
+
+    .accordion {
+        @apply w-full;
+
+        & > .item {
+
+            & > .header {
+                @apply flex;
+
+                & > .trigger {
+                    @apply inline-flex items-center justify-between w-full;
+
+                    &:focus-visible {
+                        @apply z-10;
+                        outline: 2px solid hsl(200 98% 39%);
+                        outline-offset: 2px;
+                    }
+
+                    & > .icon {
+                        transition: transform 300ms cubic-bezier(0.87, 0, 0.13, 1);
+                    }
+
+                    &[data-expanded] > .icon {
+                        transform: rotate(180deg);
+                    }
+                }
+            }
+
+            & > .content {
+                overflow: hidden;
+            }
+        }
+
+
+
+
+    }
 }
