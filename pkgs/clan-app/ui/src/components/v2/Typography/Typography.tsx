@@ -2,34 +2,12 @@ import { type JSX, mergeProps } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import cx from "classnames";
 import "./Typography.css";
+import { Color, fgClass } from "@/src/components/v2/colors";
 
 export type Tag = "span" | "p" | "h1" | "h2" | "h3" | "h4" | "div";
-export type Color = "primary" | "secondary" | "tertiary" | "quaternary";
 export type Hierarchy = "body" | "title" | "headline" | "label" | "teaser";
 export type Weight = "normal" | "medium" | "bold";
 export type Family = "regular" | "condensed" | "mono";
-
-const colorMap: Record<Color, string> = {
-  primary: cx("fg-def-1"),
-  secondary: cx("fg-def-2"),
-  tertiary: cx("fg-def-3"),
-  quaternary: cx("fg-def-4"),
-};
-
-const invertedColorMap: Record<Color, string> = {
-  primary: cx("fg-inv-1"),
-  secondary: cx("fg-inv-2"),
-  tertiary: cx("fg-inv-3"),
-  quaternary: cx("fg-inv-4"),
-};
-
-const colorFor = (color: Color | "inherit" = "primary", inverted = false) => {
-  if (color === "inherit") {
-    return "text-inherit";
-  }
-
-  return inverted ? invertedColorMap[color] : colorMap[color];
-};
 
 // type Size = "default" | "xs" | "s" | "m" | "l";
 interface SizeForHierarchy {
@@ -107,7 +85,7 @@ const weightMap: Record<Weight, string> = {
 interface _TypographyProps<H extends Hierarchy> {
   hierarchy: H;
   size: AllowedSizes<H>;
-  color?: Color | "inherit";
+  color?: Color;
   children: JSX.Element;
   weight?: Weight;
   family?: Family;
@@ -121,8 +99,6 @@ export const Typography = <H extends Hierarchy>(props: _TypographyProps<H>) => {
   const family = () =>
     `font-family-${props.family || defaultFamilyMap[props.hierarchy]}`;
 
-  const color = () => colorFor(props.color, props.inverted);
-
   const classList = mergeProps(props.classList, {
     "font-body": props.hierarchy === "body" || !props.hierarchy,
     "font-label": props.hierarchy === "label",
@@ -135,7 +111,7 @@ export const Typography = <H extends Hierarchy>(props: _TypographyProps<H>) => {
     <Dynamic
       class={cx(
         "typography",
-        color(),
+        fgClass(props.color, props.inverted),
         family(),
         weightMap[props.weight || "normal"],
         sizeHierarchyMap[props.hierarchy][props.size] as string,

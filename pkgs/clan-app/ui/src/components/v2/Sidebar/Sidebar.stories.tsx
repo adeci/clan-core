@@ -16,6 +16,7 @@ const meta: Meta<RouteSectionProps> = {
     history.set({ value: "/foo" });
 
     return (
+      <div class="h-screen">
       <MemoryRouter
         history={history}
         root={(props) => <Suspense>{props.children}</Suspense>}
@@ -25,8 +26,9 @@ const meta: Meta<RouteSectionProps> = {
           component={(props) => <Sidebar title="My Clan" icon="ClanIcon" />}
         />
       </MemoryRouter>
+      </div>
     );
-  },
+  }
 };
 
 export default meta;

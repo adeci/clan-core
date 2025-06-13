@@ -47,7 +47,7 @@ import Tag from "@/icons/tag.svg";
 import Machine from "@/icons/machine.svg";
 import { Dynamic } from "solid-js/web";
 
-import "./Icon.css";
+import { Color, fgClass } from "../colors";
 
 const icons = {
   AI,
@@ -103,12 +103,14 @@ export interface IconProps extends JSX.SvgSVGAttributes<SVGElement> {
   icon: IconVariant;
   class?: string;
   size?: number | string;
+  color?: Color;
   inverted?: boolean;
 }
 
 const Icon: Component<IconProps> = (props) => {
   const [local, iconProps] = splitProps(props, [
     "icon",
+    "color",
     "class",
     "size",
     "inverted",
@@ -122,7 +124,9 @@ const Icon: Component<IconProps> = (props) => {
   return IconComponent() ? (
     <Dynamic
       component={IconComponent()}
-      class={cx("icon", local.class, { inverted: local.inverted })}
+      class={cx("icon", local.class, fgClass(local.color, local.inverted), {
+        inverted: local.inverted,
+      })}
       data-icon-name={local.icon}
       width={local.size || "1em"}
       height={local.size || "1em"}

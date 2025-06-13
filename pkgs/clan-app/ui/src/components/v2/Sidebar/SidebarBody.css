@@ -1,11 +1,9 @@
 div.sidebar-body {
-    @apply pt-4 pb-3 px-2;
+    @apply pt-4 pb-3 px-2 h-full;
     @apply border border-inv-3 rounded-bl-md rounded-br-md;
 
-    @apply h-screen;
-
     background:
-            linear-gradient(180deg, theme(colors.primary.700) 0%, theme(colors.primary.800) 100%);
+            linear-gradient(180deg, theme(colors.primary.600) 0%, theme(colors.primary.700) 100%);
     backdrop-filter: blur(4px);
 
     .accordion {

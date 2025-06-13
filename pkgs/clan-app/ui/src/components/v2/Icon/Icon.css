@@ -1,7 +1,0 @@
-svg.icon {
-  @apply fg-def-1;
-
-  &.inverted {
-    @apply fg-inv-1;
-  }
-}

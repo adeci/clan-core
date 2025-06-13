@@ -2,7 +2,6 @@ div.sidebar-header {
 
     @apply border border-inv-3 w-full rounded-md rounded-bl-none rounded-br-none;
 
-
     background: linear-gradient(
             90deg,
             theme(colors.primary.800) 0%,
