@@ -1,0 +1,10 @@
+div.sidebar-body {
+    @apply pt-4 pb-3 px-2;
+    @apply border border-inv-3 rounded-bl-md rounded-br-md;
+
+    @apply h-screen;
+
+    background:
+            linear-gradient(180deg, theme(colors.primary.800) 0%, theme(colors.primary.900) 100%);
+    backdrop-filter: blur(8px);
+}
