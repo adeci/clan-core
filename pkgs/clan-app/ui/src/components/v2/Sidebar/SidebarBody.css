@@ -5,7 +5,7 @@ div.sidebar-body {
     @apply h-screen;
 
     background:
-            linear-gradient(180deg, theme(colors.primary.700) 0%, theme(colors.primary.900) 100%);
+            linear-gradient(180deg, theme(colors.primary.700) 0%, theme(colors.primary.800) 100%);
     backdrop-filter: blur(4px);
 
     .accordion {
@@ -13,8 +13,14 @@ div.sidebar-body {
 
         & > .item {
 
+            @apply px-3 py-1.5 bg-inv-3 rounded-md mb-4;
+
+            &:last-child {
+                @apply mb-0;
+            }
+
             & > .header {
-                @apply flex;
+                @apply flex mb-4;
 
                 & > .trigger {
                     @apply inline-flex items-center justify-between w-full;
@@ -36,7 +42,11 @@ div.sidebar-body {
             }
 
             & > .content {
-                overflow: hidden;
+                @apply overflow-hidden flex flex-col;
+
+                nav > a {
+                    @apply block w-full px-2 py-1.5 min-h-7;
+                }
             }
         }
 
