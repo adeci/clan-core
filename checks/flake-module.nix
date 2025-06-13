@@ -48,7 +48,7 @@ in
               container = self.clanLib.test.containerTest ./container nixosTestArgs;
               zt-tcp-relay = self.clanLib.test.containerTest ./zt-tcp-relay nixosTestArgs;
               matrix-synapse = self.clanLib.test.containerTest ./matrix-synapse nixosTestArgs;
-              postgresql = self.clanLib.test.containerTest ./postgresql nixosTestArgs;
+              postgresql-legacy = self.clanLib.test.containerTest ./postgresql nixosTestArgs;
 
               dummy-inventory-test = import ./dummy-inventory-test nixosTestArgs;
               dummy-inventory-test-from-flake = import ./dummy-inventory-test-from-flake nixosTestArgs;
