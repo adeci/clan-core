@@ -5,8 +5,31 @@ import {
   Route,
   RouteSectionProps,
 } from "@solidjs/router";
-import { Sidebar } from "@/src/components/v2/Sidebar/Sidebar";
+import { AppRoute, Sidebar } from "@/src/components/v2/Sidebar/Sidebar";
 import { Suspense } from "solid-js";
+
+const routes: AppRoute = {
+  label: "My Clan",
+  icon: "ClanIcon",
+  children: [
+    {
+      label: "My Machines",
+      children: [
+        { label: "Neptune", path: "/machines/neptune" },
+        { label: "Pandora", path: "/machines/pandora" },
+        { label: "Saturn", path: "/machines/saturn" },
+      ],
+    },
+    {
+      label: "Tools",
+      children: [
+        { label: "Builder", path: "/tools/builder" },
+        { label: "Editor", path: "/tools/editor" },
+        { label: "Viewer", path: "/tools/viewer" },
+      ]
+    }
+  ],
+};
 
 const meta: Meta<RouteSectionProps> = {
   title: "Components/Sidebar",
@@ -17,18 +40,20 @@ const meta: Meta<RouteSectionProps> = {
 
     return (
       <div class="h-screen">
-      <MemoryRouter
-        history={history}
-        root={(props) => <Suspense>{props.children}</Suspense>}
-      >
-        <Route
-          path="/foo"
-          component={(props) => <Sidebar title="My Clan" icon="ClanIcon" />}
-        />
-      </MemoryRouter>
+        <MemoryRouter
+          history={history}
+          root={(props) => <Suspense>{props.children}</Suspense>}
+        >
+          <Route
+            path="/foo"
+            component={(props) => (
+              <Sidebar title="My Clan" icon="ClanIcon" routes={routes} />
+            )}
+          />
+        </MemoryRouter>
       </div>
     );
-  }
+  },
 };
 
 export default meta;
