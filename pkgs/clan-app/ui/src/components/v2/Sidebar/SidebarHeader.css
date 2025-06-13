@@ -1,0 +1,24 @@
+div.sidebar-header {
+
+    @apply border border-inv-3 rounded-lg;
+    border-bottom: theme(colors.primary.800);
+
+    & > .trigger {
+        @apply flex items-center justify-between flex-shrink px-3 py-2.5;
+        @apply border-none border-b border-b-inv-3 w-full rounded-t-md;
+
+        border-bottom: 1px solid #2b4647;
+        background: linear-gradient(
+                90deg,
+                var(--clr-bg-inv-3, rgba(43, 70, 71, 0.88)) 0%,
+                var(--clr-bg-inv-4, rgba(32, 54, 55, 0.88)) 100%
+        );
+
+        & > div.title {
+            @apply flex items-center gap-2 justify-start;
+        }
+    }
+
+
+}
+

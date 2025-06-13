@@ -1,0 +1,19 @@
+div.sidebar {
+  @apply rounded-lg h-auto w-auto max-w-60 border-none;
+  @apply backdrop-blur-sm;
+
+  background:
+    url(./lightgray.png) 0 0 / 36px 36px repeat,
+    linear-gradient(
+      180deg,
+      theme(colors.primary.800) 0%,
+      theme(colors.primary.900) 100%
+    );
+
+  & > div.header {
+  }
+
+  & > div.body {
+    @apply pt-4 pb-3 px-2;
+  }
+}

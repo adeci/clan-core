@@ -7,7 +7,7 @@ import { parseColor } from "tailwindcss/lib/util/color";
 const toRGB = (value: string) =>
   "rgb(" + parseColor(value).color.join(" ") + ")";
 
-const mkColorUtils = (
+const mkBorderUtils = (
   theme: (n: string) => unknown,
   prefix: string,
   cssProperty: string,
@@ -211,11 +211,11 @@ export default plugin.withOptions(
           color: theme("colors.error.800"),
         },
 
-        ...mkColorUtils(theme, "border", "borderColor"),
-        ...mkColorUtils(theme, "border-b", "borderBottom"),
-        ...mkColorUtils(theme, "border-t", "borderTop"),
-        ...mkColorUtils(theme, "border-l", "borderLeft"),
-        ...mkColorUtils(theme, "border-r", "borderRight"),
+        ...mkBorderUtils(theme, "border", "borderColor"),
+        ...mkBorderUtils(theme, "border-b", "borderBottom"),
+        ...mkBorderUtils(theme, "border-t", "borderTop"),
+        ...mkBorderUtils(theme, "border-l", "borderLeft"),
+        ...mkBorderUtils(theme, "border-r", "borderRight"),
 
         // Example: dark mode utilities (all elements within <html class="dark"> )
         // ".dark .bg-def-1": {
