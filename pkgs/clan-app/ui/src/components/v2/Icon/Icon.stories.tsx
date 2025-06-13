@@ -67,6 +67,19 @@ type Story = StoryObj<IconProps>;
 
 export const Default: Story = {};
 
+export const Inverted: Story = {
+  args: {
+    inverted: true,
+  },
+  decorators: [
+    (Story: StoryObj) => (
+      <div class="bg-inv-1">
+        <Story />
+      </div>
+    ),
+  ],
+};
+
 export const Large: Story = {
   args: {
     width: "2rem",
