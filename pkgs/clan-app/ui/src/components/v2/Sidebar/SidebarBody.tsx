@@ -32,7 +32,7 @@ export const SidebarBody = (props: SidebarBodyProps) => {
                   >
                     {section.label}
                   </Typography>
-                  <Icon icon="CaretDown" color="tertiary" inverted={true} />
+                  <Icon icon="CaretDown" color="tertiary" inverted={true} size="0.75rem" />
                 </Accordion.Trigger>
               </Accordion.Header>
               <Accordion.Content class="content">

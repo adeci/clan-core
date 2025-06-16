@@ -30,7 +30,7 @@ export const SidebarHeader = (props: SidebarHeaderProps) => {
           </div>
 
           <DropdownMenu.Icon>
-            <Icon icon={"CaretDown"} inverted={true} />
+            <Icon icon={"CaretDown"} inverted={true} size="0.75rem" />
           </DropdownMenu.Icon>
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal>
