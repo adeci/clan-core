@@ -1,23 +1,63 @@
 div.sidebar-header {
 
-    @apply border border-inv-3 w-full rounded-md rounded-bl-none rounded-br-none;
+    @apply flex items-center justify-center w-full px-2 py-1;
+    @apply border border-inv-3 rounded-md rounded-bl-none rounded-br-none;
 
     background: linear-gradient(
             90deg,
-            theme(colors.primary.800) 0%,
+            theme(colors.primary.700) 40%,
             theme(colors.primary.900) 100%
     );
 
     border-bottom: 1px solid #1F3536;
 
-    & > .trigger {
-        @apply flex items-center justify-between flex-shrink px-3 py-2.5 w-full;
+    & > .dropdown-trigger {
 
-        & > div.title {
+        @apply flex items-center justify-between flex-grow px-1 py-1;
+        @apply rounded-tl-md rounded-tr-md;
+        @apply border border-transparent border-b-0;
+
+        div.title {
             @apply flex items-center gap-2 justify-start;
+        }
+
+        .icon[data-icon-name="CaretDown"] {
+            transition: transform 300ms cubic-bezier(0.87, 0, 0.13, 1);
+        }
+
+        /*&[data-expanded] {*/
+        /*    .inner {*/
+        /*        @apply bg-def-1;*/
+
+        /*        .icon[data-icon-name="CaretDown"] {*/
+        /*            transform: rotate(180deg);*/
+        /*        }*/
+        /*    }*/
+        /*}*/
+
+        &[data-expanded] {
+
+            @apply bg-def-1;
+
+            @apply border-def-2;
+
+            .icon[data-icon-name="CaretDown"] {
+                transform: rotate(180deg);
+            }
+
         }
     }
 
 
 }
+
+.sidebar-dropdown-content {
+
+    @apply flex flex-col w-full px-2 py-1.5 gap-1.5;
+    @apply bg-def-1 rounded-bl-md rounded-br-md;
+    @apply border border-def-2;
+
+
+}
+
 

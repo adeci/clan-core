@@ -111,10 +111,10 @@ export const Typography = <H extends Hierarchy>(props: _TypographyProps<H>) => {
     <Dynamic
       class={cx(
         "typography",
-        fgClass(props.color, props.inverted),
         family(),
         weightMap[props.weight || "normal"],
         sizeHierarchyMap[props.hierarchy][props.size] as string,
+        fgClass(props.color, props.inverted),
         props.class,
       )}
       component={props.tag || "span"}
