@@ -1,6 +1,5 @@
 div.sidebar {
-  @apply h-auto w-auto max-w-60 border-none;
-
+  @apply h-full w-auto max-w-60 border-none;
 
   & > div.header {
   }

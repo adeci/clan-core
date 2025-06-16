@@ -1,6 +1,9 @@
 div.sidebar-body {
     @apply py-4 px-2 h-full;
     @apply border border-inv-3 rounded-bl-md rounded-br-md;
+    @apply overflow-y-auto;
+
+    scrollbar-color: theme(colors.primary.700) theme(colors.primary.600);
 
     background: linear-gradient(180deg, theme(colors.primary.600) 0%, theme(colors.primary.700) 100%);
     backdrop-filter: blur(4px);

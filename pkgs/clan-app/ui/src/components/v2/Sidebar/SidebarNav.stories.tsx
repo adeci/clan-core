@@ -56,6 +56,15 @@ const sidebarNavProps: SidebarNavProps = {
         { label: "Mumble", path: "/tools/mumble" },
         { label: "Minecraft", path: "/tools/minecraft" },
       ]
+    },
+    {
+      label: "Links",
+      links: [
+        { label: "GitHub", path: "https://github.com/brian-the-dev" },
+        { label: "Twitter", path: "https://twitter.com/brian_the_dev" },
+        { label: "LinkedIn", path: "https://www.linkedin.com/in/brian-the-dev/" },
+        { label: "Instagram", path: "https://www.instagram.com/brian_the_dev/" },
+      ]
     }
   ]
 }
@@ -69,7 +78,7 @@ const meta: Meta<RouteSectionProps> = {
     history.set({ value: "/machines/backup" });
 
     return (
-      <div class="h-screen">
+      <div style="height: 670px;">
         <MemoryRouter
           history={history}
           root={(props) => <Suspense>{props.children}</Suspense>}
