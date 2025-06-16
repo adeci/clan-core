@@ -154,7 +154,7 @@ export default plugin.withOptions(
           backgroundColor: theme("colors.secondary.700"),
         },
         ".bg-inv-acc-4": {
-          backgroundColor: theme("colors.secondary.900"),
+          backgroundColor: theme("colors.primary.950"),
         },
 
         // bg inverse accent

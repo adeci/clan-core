@@ -50,16 +50,17 @@ const meta: Meta<RouteSectionProps> = {
   component: Sidebar,
   render: (_, context) => {
     const history = createMemoryHistory();
-    history.set({ value: "/foo" });
+    history.set({ value: "/machines/pandora" });
 
     return (
       <div class="h-screen">
         <MemoryRouter
           history={history}
           root={(props) => <Suspense>{props.children}</Suspense>}
+
         >
           <Route
-            path="/foo"
+            path="/machines/pandora"
             component={(props) => (
               <Sidebar title="My Clan" icon="ClanIcon" routes={routes} />
             )}

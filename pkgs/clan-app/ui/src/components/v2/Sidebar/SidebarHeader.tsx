@@ -14,36 +14,36 @@ export const SidebarHeader = (props: SidebarHeaderProps) => {
 
   return (
     <div class="sidebar-header">
-    <DropdownMenu>
-      <DropdownMenu.Trigger class="trigger">
-        <div class="title">
-          <Icon icon="ClanIcon" inverted={true} />
-           <Typography
-             hierarchy="body"
-             size="s"
-             weight="bold"
-             color="primary"
-             inverted={true}
-           >
-          My Clan
-        </Typography>
-        </div>
+      <DropdownMenu>
+        <DropdownMenu.Trigger class="trigger">
+          <div class="title">
+            <Icon icon="ClanIcon" inverted={true} />
+            <Typography
+              hierarchy="body"
+              size="s"
+              weight="bold"
+              color="primary"
+              inverted={true}
+            >
+              {props.title}
+            </Typography>
+          </div>
 
-        <DropdownMenu.Icon>
-          <Icon icon={"CaretDown"} inverted={true} />
-        </DropdownMenu.Icon>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content>
-          <DropdownMenu.Item onSelect={() => navigate("/foo")}>
-            Hello world
-          </DropdownMenu.Item>
-          <DropdownMenu.Item>Foo bar</DropdownMenu.Item>
+          <DropdownMenu.Icon>
+            <Icon icon={"CaretDown"} inverted={true} />
+          </DropdownMenu.Icon>
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Content>
+            <DropdownMenu.Item onSelect={() => navigate("/foo")}>
+              Hello world
+            </DropdownMenu.Item>
+            <DropdownMenu.Item>Foo bar</DropdownMenu.Item>
 
-          <DropdownMenu.Arrow />
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu>
+            <DropdownMenu.Arrow />
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
+      </DropdownMenu>
     </div>
   );
 };
