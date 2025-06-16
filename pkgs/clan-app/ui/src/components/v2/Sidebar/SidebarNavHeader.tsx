@@ -1,4 +1,4 @@
-import "./SidebarHeader.css";
+import "./SidebarNavHeader.css";
 import Icon, { IconVariant } from "@/src/components/v2/Icon/Icon";
 import { DropdownMenu } from "@kobalte/core/dropdown-menu";
 import { useNavigate } from "@solidjs/router";
@@ -7,10 +7,9 @@ import { createSignal } from "solid-js";
 
 export interface SidebarHeaderProps {
   title: string;
-  icon: IconVariant;
 }
 
-export const SidebarHeader = (props: SidebarHeaderProps) => {
+export const SidebarNavHeader = (props: SidebarHeaderProps) => {
   const navigate = useNavigate();
 
   const [open, setOpen] = createSignal(false);
@@ -20,7 +19,7 @@ export const SidebarHeader = (props: SidebarHeaderProps) => {
       <DropdownMenu open={open()} onOpenChange={setOpen} sameWidth={true}>
         <DropdownMenu.Trigger class="dropdown-trigger">
             <div class="title">
-              <Icon icon="ClanIcon" inverted={!open()} />
+
               <Typography
                 hierarchy="body"
                 size="default"
