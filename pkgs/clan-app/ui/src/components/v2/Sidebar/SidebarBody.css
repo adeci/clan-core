@@ -16,6 +16,10 @@ div.sidebar-body {
 
             @apply py-3 px-1.5 bg-inv-3 rounded-md mb-4;
 
+            &:last-child {
+                @apply mb-0;
+            }
+
             & > .header {
                 @apply flex mb-4 px-2;
 
