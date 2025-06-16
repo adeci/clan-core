@@ -23,6 +23,7 @@ export const SidebarBody = (props: SidebarBodyProps) => {
               <Accordion.Header class="header">
                 <Accordion.Trigger class="trigger">
                   <Typography
+                    class="section-title"
                     hierarchy="label"
                     family="mono"
                     size="xs"

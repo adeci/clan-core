@@ -35,6 +35,10 @@ div.sidebar-body {
                     &[data-expanded] > .icon {
                         transform: rotate(180deg);
                     }
+
+                    .section-title {
+                        @apply uppercase;
+                    }
                 }
             }
 
