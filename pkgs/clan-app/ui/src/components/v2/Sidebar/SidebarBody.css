@@ -44,6 +44,11 @@ div.sidebar-body {
 
             & > .content {
                 @apply overflow-hidden flex flex-col;
+                animation: slideAccordionUp 300ms cubic-bezier(0.87, 0, 0.13, 1);
+
+                &[data-expanded] {
+                    animation: slideAccordionDown 300ms cubic-bezier(0.87, 0, 0.13, 1);
+                }
 
                 nav * {
                     @apply outline-none;
@@ -78,9 +83,23 @@ div.sidebar-body {
                 }
             }
         }
-
-
     }
+}
 
 
+@keyframes slideAccordionDown {
+    from {
+        height: 0;
+    }
+    to {
+        height: var(--kb-accordion-content-height);
+    }
+}
+@keyframes slideAccordionUp {
+    from {
+        height: var(--kb-accordion-content-height);
+    }
+    to {
+        height: 0;
+    }
 }
