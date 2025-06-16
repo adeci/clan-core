@@ -1,21 +1,18 @@
 import "./SidebarBody.css";
-import { A, RouteProps } from "@solidjs/router";
+import { A } from "@solidjs/router";
 import { Accordion } from "@kobalte/core/accordion";
 import Icon from "../Icon/Icon";
 import { Typography } from "@/src/components/v2/Typography/Typography";
-import { AppRoute } from "@/src/components/v2/Sidebar/Sidebar";
-import { For, Index } from "solid-js";
+import { SectionProps } from "@/src/components/v2/Sidebar/Sidebar";
+import { For, Match, Switch } from "solid-js";
 
 export interface SidebarBodyProps {
-  routes: AppRoute;
+  routes: SectionProps[];
 }
 
 export const SidebarBody = (props: SidebarBodyProps) => {
-
-  const sections = props.routes.children || [];
-
-  const sectionLabels = sections.map(section => section.label);
-
+  const sections = props.routes || [];
+  const sectionLabels = sections.map((section) => section.label);
 
   return (
     <div class="sidebar-body">
@@ -39,18 +36,25 @@ export const SidebarBody = (props: SidebarBodyProps) => {
               </Accordion.Header>
               <Accordion.Content class="content">
                 <nav>
-                  <For each={section.children || []}>
+                  <For each={section.routes || []}>
                     {(route) => (
                       <A href={route.path}>
-                        <Typography
-                          hierarchy="body"
-                          size="xs"
-                          weight="bold"
-                          color="primary"
-                          inverted={true}
-                        >
-                          {route.label}
-                        </Typography>
+                        <Switch>
+                          <Match when={section.component}>
+                            {section.component!(route)}
+                          </Match>
+                          <Match when={route.label && !section.component}>
+                            <Typography
+                              hierarchy="body"
+                              size="xs"
+                              weight="bold"
+                              color="primary"
+                              inverted={true}
+                            >
+                              {route.label}
+                            </Typography>
+                          </Match>
+                        </Switch>
                       </A>
                     )}
                   </For>

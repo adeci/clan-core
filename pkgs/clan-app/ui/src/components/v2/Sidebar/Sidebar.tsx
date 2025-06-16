@@ -2,26 +2,30 @@ import "./Sidebar.css";
 import { IconVariant } from "@/src/components/v2/Icon/Icon";
 import { SidebarHeader } from "@/src/components/v2/Sidebar/SidebarHeader";
 import { SidebarBody } from "@/src/components/v2/Sidebar/SidebarBody";
-import { RouteDefinition } from "@solidjs/router";
+import { Component } from "solid-js";
 
-export type AppRoute = Omit<RouteDefinition, "children"> & {
+export interface RouteProps {
+  path: string;
+  label?: string;
+}
+
+export interface SectionProps {
   label: string;
-  icon?: IconVariant;
-  children?: AppRoute[];
-  hidden?: boolean;
-};
+  routes: RouteProps[];
+  component?: Component<RouteProps>;
+}
 
 export interface SidebarProps {
   title: string;
   icon: IconVariant;
-  routes: AppRoute;
+  routes: SectionProps[];
 }
 
 export const Sidebar = (props: SidebarProps) => {
   return (
     <div class="sidebar">
       <SidebarHeader title={props.title} icon={props.icon} />
-      <SidebarBody routes={props.routes}/>
+      <SidebarBody routes={props.routes} />
     </div>
   );
 };

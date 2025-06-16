@@ -5,31 +5,45 @@ import {
   Route,
   RouteSectionProps,
 } from "@solidjs/router";
-import { AppRoute, Sidebar } from "@/src/components/v2/Sidebar/Sidebar";
+import { Sidebar, SectionProps, RouteProps } from "@/src/components/v2/Sidebar/Sidebar";
 import { Suspense } from "solid-js";
+import { Typography } from "../Typography/Typography";
+import Icon from "../Icon/Icon";
 
-const routes: AppRoute = {
-  label: "My Clan",
-  icon: "ClanIcon",
-  children: [
-    {
-      label: "My Machines",
-      children: [
-        { label: "Neptune", path: "/machines/neptune" },
-        { label: "Pandora", path: "/machines/pandora" },
-        { label: "Saturn", path: "/machines/saturn" },
-      ],
-    },
-    {
-      label: "Tools",
-      children: [
-        { label: "Builder", path: "/tools/builder" },
-        { label: "Editor", path: "/tools/editor" },
-        { label: "Viewer", path: "/tools/viewer" },
-      ]
-    }
-  ],
-};
+const MachineRoute = (props: RouteProps) => (
+  <div class="flex w-full flex-col gap-2">
+    <div class="flex flex-row items-center justify-between">
+      <Typography hierarchy="body" size="xs" weight="bold" color="primary" inverted={true}>
+        {props.label}
+      </Typography>
+      <span class="flex size-1 items-center justify-center rounded-full bg-emerald-400"/>
+    </div>
+    <div class="flex w-full flex-row items-center gap-1">
+      <Icon icon="Flash" size="0.75rem" inverted={true} color="tertiary"/>
+      <Typography hierarchy="label" family="mono" size="s" inverted={true} color="primary">0</Typography>
+    </div>
+  </div>
+)
+
+const routes: SectionProps[] = [
+  {
+    label: "My Machines",
+    component: MachineRoute,
+    routes: [
+      { label: "Neptune", path: "/machines/neptune" },
+      { label: "Pandora", path: "/machines/pandora" },
+      { label: "Saturn", path: "/machines/saturn" },
+    ],
+  },
+  {
+    label: "Tools",
+    routes: [
+      { label: "Builder", path: "/tools/builder" },
+      { label: "Editor", path: "/tools/editor" },
+      { label: "Viewer", path: "/tools/viewer" },
+    ]
+  }
+]
 
 const meta: Meta<RouteSectionProps> = {
   title: "Components/Sidebar",
