@@ -26,14 +26,14 @@ export interface ClanProps {
 }
 
 export interface SidebarNavProps {
-  clan: ClanProps;
-  sections: SectionProps[];
+  clanDetail: ClanProps;
+  extraSections: SectionProps[];
 }
 
 export const SidebarNav = (props: SidebarNavProps) => {
   return (
     <div class="sidebar">
-      <SidebarNavHeader title={props.clan.label} />
+      <SidebarNavHeader {...props} />
       <SidebarNavBody {...props} />
     </div>
   );

@@ -4,9 +4,10 @@ import { DropdownMenu } from "@kobalte/core/dropdown-menu";
 import { useNavigate } from "@solidjs/router";
 import { Typography } from "../Typography/Typography";
 import { createSignal } from "solid-js";
+import { ClanProps } from "@/src/components/v2/Sidebar/SidebarNav";
 
 export interface SidebarHeaderProps {
-  title: string;
+  clanDetail: ClanProps
 }
 
 export const SidebarNavHeader = (props: SidebarHeaderProps) => {
@@ -27,7 +28,7 @@ export const SidebarNavHeader = (props: SidebarHeaderProps) => {
                 color="primary"
                 inverted={!open()}
               >
-                {props.title}
+                {props.clanDetail.label}
               </Typography>
             </div>
             <DropdownMenu.Icon>

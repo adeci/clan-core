@@ -15,9 +15,10 @@ import {
 import { Suspense } from "solid-js";
 import { Typography } from "../Typography/Typography";
 import Icon from "../Icon/Icon";
+import { StoryContext } from "@kachurun/storybook-solid-vite";
 
 const sidebarNavProps: SidebarNavProps = {
-  clan: {
+  clanDetail: {
     label: "Brian's Clan",
     machines: [
       {
@@ -46,7 +47,7 @@ const sidebarNavProps: SidebarNavProps = {
       },
     ],
   },
-  sections: [
+  extraSections: [
     {
       label: "Tools",
       links: [
@@ -63,7 +64,7 @@ const sidebarNavProps: SidebarNavProps = {
 const meta: Meta<RouteSectionProps> = {
   title: "Components/Sidebar/Nav",
   component: SidebarNav,
-  render: (_, context) => {
+  render: (_: never, context: StoryContext<SidebarNavProps>) => {
     const history = createMemoryHistory();
     history.set({ value: "/machines/backup" });
 

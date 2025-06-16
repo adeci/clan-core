@@ -44,7 +44,7 @@ const MachineRoute = (props: MachineProps) => (
 
 export const SidebarNavBody = (props: SidebarNavProps) => {
 
-  const sectionLabels = props.sections.map((section) => section.label);
+  const sectionLabels = props.extraSections.map((section) => section.label);
 
   // controls which sections are open by default
   // we want them all to be open by default
@@ -79,7 +79,7 @@ export const SidebarNavBody = (props: SidebarNavProps) => {
           </Accordion.Header>
           <Accordion.Content class="content">
             <nav>
-              <For each={props.clan.machines}>
+              <For each={props.clanDetail.machines}>
                 {(machine) => (
                   <A href={machine.path}>
                     <MachineRoute {...machine} />
@@ -90,7 +90,7 @@ export const SidebarNavBody = (props: SidebarNavProps) => {
           </Accordion.Content>
         </Accordion.Item>
 
-        <For each={props.sections}>
+        <For each={props.extraSections}>
           {(section) => (
             <Accordion.Item class="item" value={section.label}>
               <Accordion.Header class="header">
