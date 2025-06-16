@@ -2,6 +2,7 @@ import "./SidebarNav.css";
 import { SidebarNavHeader } from "@/src/components/v2/Sidebar/SidebarNavHeader";
 import { SidebarNavBody } from "@/src/components/v2/Sidebar/SidebarNavBody";
 import { MachineStatus } from "@/src/components/v2/Sidebar/TagStatus";
+import { IconVariant } from "@/src/components/v2/Icon/Icon";
 
 export interface LinkProps {
   path: string;
@@ -20,13 +21,20 @@ export interface MachineProps {
   serviceCount: number;
 }
 
+export interface ClanLinkProps {
+  label: string;
+  path: string;
+}
+
 export interface ClanProps {
   label: string;
+  settingsPath: string;
   machines: MachineProps[];
 }
 
 export interface SidebarNavProps {
   clanDetail: ClanProps;
+  clanLinks: ClanLinkProps[];
   extraSections: SectionProps[];
 }
 

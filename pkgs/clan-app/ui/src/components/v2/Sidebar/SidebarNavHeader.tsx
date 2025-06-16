@@ -3,11 +3,15 @@ import Icon, { IconVariant } from "@/src/components/v2/Icon/Icon";
 import { DropdownMenu } from "@kobalte/core/dropdown-menu";
 import { useNavigate } from "@solidjs/router";
 import { Typography } from "../Typography/Typography";
-import { createSignal } from "solid-js";
-import { ClanProps } from "@/src/components/v2/Sidebar/SidebarNav";
+import { createSignal, For } from "solid-js";
+import {
+  ClanLinkProps,
+  ClanProps,
+} from "@/src/components/v2/Sidebar/SidebarNav";
 
 export interface SidebarHeaderProps {
-  clanDetail: ClanProps
+  clanDetail: ClanProps;
+  clanLinks: ClanLinkProps[];
 }
 
 export const SidebarNavHeader = (props: SidebarHeaderProps) => {
@@ -16,7 +20,6 @@ export const SidebarNavHeader = (props: SidebarHeaderProps) => {
   const [open, setOpen] = createSignal(false);
 
   const firstChar = props.clanDetail.label.charAt(0);
-
 
   return (
     <div class="sidebar-header">
@@ -50,10 +53,54 @@ export const SidebarNavHeader = (props: SidebarHeaderProps) => {
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal>
           <DropdownMenu.Content class="sidebar-dropdown-content">
-            <DropdownMenu.Item onSelect={() => navigate("/foo")}>
-              Hello world
+            <DropdownMenu.Item
+              class="dropdown-item"
+              onSelect={() => navigate(props.clanDetail.settingsPath)}
+            >
+              <Icon
+                icon="Settings"
+                size="0.75rem"
+                inverted={true}
+                color="tertiary"
+              />
+              <Typography
+                hierarchy="body"
+                size="xs"
+                weight="medium"
+              >
+                Settings
+              </Typography>
             </DropdownMenu.Item>
-            <DropdownMenu.Item>Foo bar</DropdownMenu.Item>
+            <DropdownMenu.Group class="dropdown-group">
+              <DropdownMenu.GroupLabel class="dropdown-group-label">
+                <Typography
+                  hierarchy="label"
+                  family="mono"
+                  size="xs"
+                  color="tertiary"
+                >
+                  YOUR CLANS
+                </Typography>
+              </DropdownMenu.GroupLabel>
+              <div class="dropdown-group-items">
+                <For each={props.clanLinks}>
+                  {(clan) => (
+                    <DropdownMenu.Item
+                      class="dropdown-item"
+                      onSelect={() => navigate(clan.path)}
+                    >
+                      <Typography
+                        hierarchy="body"
+                        size="xs"
+                        weight="medium"
+                      >
+                        {clan.label}
+                      </Typography>
+                    </DropdownMenu.Item>
+                  )}
+                </For>
+              </div>
+            </DropdownMenu.Group>
           </DropdownMenu.Content>
         </DropdownMenu.Portal>
       </DropdownMenu>

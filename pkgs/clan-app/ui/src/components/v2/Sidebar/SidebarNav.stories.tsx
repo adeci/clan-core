@@ -18,30 +18,36 @@ import Icon from "../Icon/Icon";
 import { StoryContext } from "@kachurun/storybook-solid-vite";
 
 const sidebarNavProps: SidebarNavProps = {
+  clanLinks: [
+    { label: "Brian's Clan", path: "/clan/1" },
+    { label: "Dave's Clan", path: "/clan/2" },
+    { label: "Mic92's Clan", path: "/clan/3" },
+  ],
   clanDetail: {
     label: "Brian's Clan",
+    settingsPath: "/clan/1/settings",
     machines: [
       {
         label: "Backup & Home",
-        path: "/machines/backup",
+        path: "/clan/1/machine/backup",
         serviceCount: 3,
         status: "Online",
       },
       {
         label: "Raspberry Pi",
-        path: "/machines/pi",
+        path: "/clan/1/machine/pi",
         serviceCount: 1,
         status: "Offline",
       },
       {
         label: "Mom's Laptop",
-        path: "/machines/moms-laptop",
+        path: "/clan/1/machine/moms-laptop",
         serviceCount: 2,
         status: "Installed",
       },
       {
         label: "Dad's Laptop",
-        path: "/machines/dads-laptop",
+        path: "/clan/1/machine/dads-laptop",
         serviceCount: 4,
         status: "Not Installed",
       },
@@ -51,10 +57,10 @@ const sidebarNavProps: SidebarNavProps = {
     {
       label: "Tools",
       links: [
-        { label: "Borgbackup", path: "/tools/borgbackup" },
-        { label: "Syncthing", path: "/tools/synthing" },
-        { label: "Mumble", path: "/tools/mumble" },
-        { label: "Minecraft", path: "/tools/minecraft" },
+        { label: "Borgbackup", path: "/clan/1/service/borgbackup" },
+        { label: "Syncthing", path: "/clan/1/service/syncthing" },
+        { label: "Mumble", path: "/clan/1/service/mumble" },
+        { label: "Minecraft", path: "/clan/1/service/minecraft" },
       ]
     },
     {
