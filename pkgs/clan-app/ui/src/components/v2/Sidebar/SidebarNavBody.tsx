@@ -43,9 +43,19 @@ const MachineRoute = (props: MachineProps) => (
 );
 
 export const SidebarNavBody = (props: SidebarNavProps) => {
+
+  const sectionLabels = props.sections.map((section) => section.label);
+
+  // controls which sections are open by default
+  // we want them all to be open by default
+  const defaultAccordionValues = [
+    'your-machines',
+    ...sectionLabels,
+  ]
+
   return (
     <div class="sidebar-body">
-      <Accordion class="accordion" multiple defaultValue={["your-machines"]}>
+      <Accordion class="accordion" multiple defaultValue={defaultAccordionValues}>
         <Accordion.Item class="item" value="your-machines">
           <Accordion.Header class="header">
             <Accordion.Trigger class="trigger">
