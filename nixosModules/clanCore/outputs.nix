@@ -62,6 +62,7 @@
           '';
           default = false;
         };
+
         vm.create = lib.mkOption {
           type = lib.types.path;
           description = ''
@@ -89,6 +90,8 @@
       inherit (config.clan.core.networking) targetHost buildHost;
       inherit (config.system.clan.deployment) nixosMobileWorkaround;
       inherit (config.clan.deployment) requireExplicitUpdate;
+      # Include microvm deployment data if present
+      inherit (config.system.clan.deployment) guestMachines microvmGuests preBuildDependencies;
     };
   };
 }

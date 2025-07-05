@@ -16,6 +16,13 @@ from clan_lib.cmd import Log, MsgColor, RunOpts, run
 from clan_lib.colors import AnsiColor
 from clan_lib.errors import ClanError
 from clan_lib.machines.machines import Machine
+from clan_lib.machines.microvm import (
+    build_microvm_instance,
+    copy_runners_to_host,
+    is_microvm_instance,
+    parse_instance_name,
+    upload_microvm_runners,
+)
 from clan_lib.nix import nix_command, nix_metadata
 from clan_lib.ssh.remote import Remote
 
@@ -119,8 +126,87 @@ def deploy_machine(
         generate_facts([machine], service=None, regenerate=False)
         generate_vars([machine], generator_name=None, regenerate=False)
 
+        # Build guest machines first if specified
+        try:
+            guest_machines = (
+                machine.select("config.system.clan.deployment.guestMachines") or []
+            )
+        except Exception:
+            guest_machines = []
+
+        fresh_builds = {}
+        microvm_runners = {}
+
+        if guest_machines:
+            log.info(
+                f"Building {len(guest_machines)} guest machine(s)",
+                extra={"command_prefix": machine.name},
+            )
+            for guest_name in guest_machines:
+                log.info(
+                    f"Processing guest: {guest_name}",
+                    extra={"command_prefix": machine.name},
+                )
+
+                if is_microvm_instance(guest_name):
+                    # This is a microvm instance - build with overlay
+                    base_machine, instance_name = parse_instance_name(guest_name)
+                    try:
+                        microvm_guests = (
+                            machine.select(
+                                "config.system.clan.deployment.microvmGuests"
+                            )
+                            or {}
+                        )
+                        microvm_settings = microvm_guests.get(instance_name, {})
+                    except Exception:
+                        microvm_settings = {}
+
+                    runner_path = build_microvm_instance(
+                        machine, guest_name, microvm_settings
+                    )
+                    fresh_builds[instance_name] = runner_path
+                    microvm_runners[instance_name] = runner_path
+                else:
+                    # Regular machine
+                    log.info(
+                        "Building guest machine", extra={"command_prefix": guest_name}
+                    )
+                    build_cmd = nix_command(
+                        [
+                            "build",
+                            f"{machine.flake.identifier}#nixosConfigurations.{guest_name}.config.system.build.toplevel",
+                            "--no-link",
+                            "--print-out-paths",
+                        ]
+                    )
+
+                    log.info(
+                        "Running build command...", extra={"command_prefix": guest_name}
+                    )
+                    result = run(
+                        build_cmd,
+                        RunOpts(
+                            needs_user_terminal=True,
+                            error_msg=f"Failed to build guest machine {guest_name}",
+                            prefix=guest_name,
+                        ),
+                    )
+                    runner_path = result.stdout.strip()
+                    fresh_builds[guest_name] = runner_path
+                    log.info(
+                        f"✓ Built toplevel: {runner_path}",
+                        extra={"command_prefix": guest_name},
+                    )
+
+            # Copy microvm runners to the remote host
+            copy_runners_to_host(machine, host, sudo_host, microvm_runners)
+
         upload_secrets(machine, sudo_host)
         upload_secret_vars(machine, sudo_host)
+
+        # Upload microvm runner mappings if we built any
+        upload_microvm_runners(machine, sudo_host, microvm_runners)
 
         path = upload_sources(machine, sudo_host)
 

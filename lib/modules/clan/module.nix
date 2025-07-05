@@ -160,6 +160,11 @@ in
     type = lib.types.attrsOf lib.types.deferredModule;
   };
 
+  options.outputs.machineToplevels = lib.mkOption {
+    type = lib.types.attrsOf lib.types.package;
+    description = "Machine toplevels for each machine, useful for cross-machine references";
+  };
+
   config = {
     inventory.modules = clan-core.clanModules;
     inventory._legacyModules = clan-core.clanModules;
@@ -209,6 +214,9 @@ in
       # i.e. 'clan.machines.jon = ...'
       config.machines
     ];
+
+    # Expose machine toplevels for cross-machine references (e.g., microvm guests)
+    outputs.machineToplevels = lib.mapAttrs (_: cfg: cfg.config.system.build.toplevel) configurations;
 
     specialArgs = {
       self = lib.mkDefault config.self;

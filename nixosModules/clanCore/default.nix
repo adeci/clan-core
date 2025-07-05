@@ -8,6 +8,7 @@
       ./inventory
       ./meta/interface.nix
       ./metadata.nix
+      ./microvm.nix
       ./networking.nix
       ./nix-settings.nix
       ./options.nix

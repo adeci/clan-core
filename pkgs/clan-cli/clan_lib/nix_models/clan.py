@@ -121,9 +121,18 @@ class Inventory(TypedDict):
 
 
 
+
+
+class OutputMachinetoplevel(TypedDict):
+    pass
+
+
+
+OutputMachinetoplevelsType = OutputMachinetoplevel
 OutputModuleformachineType = dict[str, Unknown]
 
 class Output(TypedDict):
+    machineToplevels: NotRequired[OutputMachinetoplevelsType]
     moduleForMachine: NotRequired[OutputModuleformachineType]
 
 
