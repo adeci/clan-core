@@ -10,61 +10,67 @@
   };
 
   roles.default = {
-    interface = { lib, ... }: {
-      options = {
-        username = lib.mkOption {
-          type = lib.types.str;
-          description = "Username for which to manage the home configuration";
-        };
-        
-        stateVersion = lib.mkOption {
-          type = lib.types.str;
-          default = "24.05";
-          description = "Home Manager state version";
-        };
+    interface =
+      { lib, ... }:
+      {
+        options = {
+          username = lib.mkOption {
+            type = lib.types.str;
+            description = "Username for which to manage the home configuration";
+          };
 
-        homeManagerConfig = lib.mkOption {
-          type = lib.types.attrsOf lib.types.anything;
-          default = { };
-          description = ''
-            Home Manager configuration. This can include any valid
-            home-manager option such as programs, services, home.packages, etc.
-            
-            The configuration is passed directly to home-manager, allowing full
-            access to all home-manager modules and options.
-          '';
-          example = lib.literalExpression ''
-            {
-              programs.git = {
-                enable = true;
-                userName = "John Doe";
-                userEmail = "john@example.com";
-              };
-              programs.zsh = {
-                enable = true;
-                oh-my-zsh.enable = true;
-              };
-              home.packages = with pkgs; [ htop ripgrep ];
-            }
-          '';
+          stateVersion = lib.mkOption {
+            type = lib.types.str;
+            default = "24.05";
+            description = "Home Manager state version";
+          };
+
+          homeManagerConfig = lib.mkOption {
+            type = lib.types.attrsOf lib.types.anything;
+            default = { };
+            description = ''
+              Home Manager configuration. This can include any valid
+              home-manager option such as programs, services, home.packages, etc.
+
+              The configuration is passed directly to home-manager, allowing full
+              access to all home-manager modules and options.
+            '';
+            example = lib.literalExpression ''
+              {
+                programs.git = {
+                  enable = true;
+                  userName = "John Doe";
+                  userEmail = "john@example.com";
+                };
+                programs.zsh = {
+                  enable = true;
+                  oh-my-zsh.enable = true;
+                };
+                home.packages = with pkgs; [ htop ripgrep ];
+              }
+            '';
+          };
         };
       };
-    };
 
-    perInstance = { settings, machine, pkgs, lib, ... }: {
-      nixosModule = { config, clan-core, ... }: {
-        imports = [ clan-core.inputs.home-manager.nixosModules.home-manager ];
+    perInstance =
+      { settings, ... }:
+      {
+        nixosModule =
+          { clan-core, ... }:
+          {
+            imports = [ clan-core.inputs.home-manager.nixosModules.home-manager ];
 
-        home-manager = {
-          useGlobalPkgs = true;
-          useUserPackages = true;
-          
-          users.${settings.username} = {
-            home.stateVersion = settings.stateVersion;
-            
-          } // settings.homeManagerConfig;
-        };
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+
+              users.${settings.username} = {
+                home.stateVersion = settings.stateVersion;
+
+              } // settings.homeManagerConfig;
+            };
+          };
       };
-    };
   };
 }
