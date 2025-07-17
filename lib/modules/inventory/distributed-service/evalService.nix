@@ -9,12 +9,20 @@
   => result.options
   ```
 */
-{ lib, clanLib }:
+{
+  lib,
+  clanLib,
+  clan-core,
+}:
 # <lambda evalService>
 { modules, prefix }:
 lib.evalModules {
   class = "clan.service";
-  specialArgs._ctx = prefix;
+  specialArgs = {
+    _ctx = prefix;
+    inherit clan-core;
+    inputs = clan-core.inputs;
+  };
   modules =
     [
       # Base module
