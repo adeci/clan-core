@@ -30,7 +30,9 @@ lib.fix (
     */
     callLib = file: args: import file ({ inherit lib clanLib; } // args);
 
-    evalService = clanLib.callLib ./modules/inventory/distributed-service/evalService.nix { clan-core = self; };
+    evalService = clanLib.callLib ./modules/inventory/distributed-service/evalService.nix {
+      clan-core = self;
+    };
     # ------------------------------------
     # ClanLib functions
     evalClan = clanLib.callLib ./modules/inventory/eval-clan-modules { };

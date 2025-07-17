@@ -9,7 +9,11 @@
   => result.options
   ```
 */
-{ lib, clanLib, clan-core }:
+{
+  lib,
+  clanLib,
+  clan-core,
+}:
 # <lambda evalService>
 { modules, prefix }:
 lib.evalModules {
