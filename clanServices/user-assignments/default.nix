@@ -101,7 +101,7 @@
               {
                 isNormalUser = !roleConfig.isSystemUser;
                 isSystemUser = roleConfig.isSystemUser;
-                uid = finalUid;
+                uid = lib.mkForce finalUid;
                 group = username;
                 extraGroups = finalGroups;
                 createHome = roleConfig.createHome;
@@ -132,7 +132,7 @@
           in
           {
             users.groups = lib.mapAttrs (_username: _: {
-              gid = null;
+              gid = lib.mkForce null;
             }) machineUsers;
 
             users.users = lib.mapAttrs processUser machineUsers // {
@@ -168,14 +168,14 @@
                       if [[ -n "''${prompt_value-}" ]]; then
                         echo "$prompt_value" | tr -d "\n" > "$out"/${username}-password
                       else
-                        ${pkgs.xkcdpass}/bin/xkcdpass \
+                        xkcdpass \
                           --numwords 3 \
                           --delimiter - \
                           --count 1 \
                           | tr -d "\n" > "$out"/${username}-password
                       fi
 
-                      ${pkgs.mkpasswd}/bin/mkpasswd -s -m sha-512 \
+                      mkpasswd -s -m sha-512 \
                         < "$out"/${username}-password \
                         | tr -d "\n" > "$out"/${username}-password-hash
                     '';
