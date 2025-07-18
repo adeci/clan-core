@@ -59,6 +59,7 @@
                 additionalGroups = [ ];
                 isSystemUser = true;
                 createHome = false;
+                shell = "/bin/false";
               };
             };
 
@@ -85,6 +86,14 @@
                     machineConfig.uid
                   else
                     userConfig.defaultUid;
+                    
+                finalShell =
+                  if machineConfig ? shell && machineConfig.shell != null then
+                    machineConfig.shell
+                  else if roleConfig ? shell && roleConfig.shell != null then
+                    roleConfig.shell
+                  else
+                    null;
               in
               {
                 isNormalUser = !roleConfig.isSystemUser;
@@ -101,6 +110,9 @@
                     config.clan.core.vars.generators."user-password-${username}".files."${username}-password-hash".path
                   else
                     null;
+              }
+              // lib.optionalAttrs (finalShell != null) {
+                shell = pkgs.${baseNameOf finalShell};
               };
 
             rootAuthorizedKeys = lib.concatLists (
