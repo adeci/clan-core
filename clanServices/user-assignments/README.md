@@ -2,6 +2,8 @@
 
 Centralized user management across multiple machines with role-based access control.
 
+**Note**: This service is NOT enabled by default. You must explicitly create an instance.
+
 ## Usage
 
 Create a single instance that manages all users across your infrastructure:
@@ -59,6 +61,6 @@ machines.special-server = {
   role = "admin";
   uid = 2000;                    # Different UID
   groups = [ "docker" "wheel" ]; # Replace default groups
-  shell = "/bin/zsh";            # Different shell
+  shell = "zsh";                 # Custom shell
 };
 ```
