@@ -38,7 +38,6 @@
                 additionalGroups = [ "wheel" ];
                 isSystemUser = false;
                 createHome = true;
-                shell = null;
               };
               admin = {
                 hasRootAccess = true;
@@ -46,7 +45,6 @@
                 additionalGroups = [ "wheel" ];
                 isSystemUser = false;
                 createHome = true;
-                shell = null;
               };
               basic = {
                 hasRootAccess = false;
@@ -54,7 +52,6 @@
                 additionalGroups = [ ];
                 isSystemUser = false;
                 createHome = true;
-                shell = null;
               };
               service = {
                 hasRootAccess = false;
