@@ -57,7 +57,7 @@
       { settings, ... }:
       {
         nixosModule =
-          { clan-core, ... }:
+          { clan-core, lib, ... }:
           {
             imports = [ clan-core.inputs.home-manager.nixosModules.home-manager ];
 
@@ -65,10 +65,12 @@
               useGlobalPkgs = true;
               useUserPackages = true;
 
-              users.${settings.username} = {
-                home.stateVersion = settings.stateVersion;
-
-              } // settings.homeManagerConfig;
+              users.${settings.username} = lib.mkMerge [
+                {
+                  home.stateVersion = settings.stateVersion;
+                }
+                settings.homeManagerConfig
+              ];
             };
           };
       };
