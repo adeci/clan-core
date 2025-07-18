@@ -126,6 +126,31 @@
               };
             };
 
+            programs =
+              let
+                shellList = lib.unique (
+                  lib.filter (s: s != null && s != "/bin/false") (
+                    lib.mapAttrsToList (
+                      _: user:
+                      let
+                        machineConfig = user.machines.${machineName};
+                        roleConfig = roleDefinitions.${machineConfig.role};
+                      in
+                      if machineConfig ? shell && machineConfig.shell != null then
+                        machineConfig.shell
+                      else
+                        roleConfig.shell
+                    ) machineUsers
+                  )
+                );
+              in
+              lib.listToAttrs (
+                map (shell: {
+                  name = baseNameOf shell;
+                  value.enable = true;
+                }) shellList
+              );
+
             clan.core.vars.generators =
               lib.mapAttrs'
                 (
