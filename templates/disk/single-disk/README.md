@@ -1,23 +1,32 @@
 ---
-description = "Simple single disk schema"
+description = "BIOS & UEFI compatible (GRUB bootloader)"
 ---
-# Description
+# BIOS-UEFI Template
 
-This schema defines a GPT-based disk layout.
+Universal disk layout that works on both BIOS and UEFI (GRUB)
 
-### **Disk Overview**
+### Disk Overview
 
-- **Name**: `main-{{uuid}}`
-- **Device**: `{{mainDisk}}`
+- Device: `{{mainDisk}}`
 
-### **Partitions**
+### Partitions
 
-1. **EFI System Partition (ESP)**
-   - Size: `500M`.
-   - Filesystem: `vfat`.
-   - Mount Point: `/boot` (secure `umask=0077`).
+1. BIOS Boot Partition
+   - Size: `1MB`
+   - Type: BIOS boot (for GRUB on BIOS systems)
+   - Not visible after installation
 
-2. **Root Partition**
-   - Size: Remaining disk space (`100%`).
-   - Filesystem: `ext4`.
-   - Mount Point: `/`.
+2. EFI System Partition (ESP)
+   - Size: `500MB`
+   - Filesystem: `vfat`
+   - Mount Point: `/boot` (secure `umask=0077`)
+
+3. Root Partition
+   - Size: Remaining disk space (`100%`)
+   - Filesystem: `ext4`
+   - Mount Point: `/`
+
+### Notes
+
+- Requires GRUB bootloader (supports both BIOS & UEFI)
+- Works on older hardware

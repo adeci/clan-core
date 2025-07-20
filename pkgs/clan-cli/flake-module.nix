@@ -32,7 +32,8 @@
       templateDerivation = pkgs.closureInfo {
         rootPaths =
           builtins.attrValues (self.inputs.nix-select.lib.select "clan.templates.clan.*.path" self)
-          ++ builtins.attrValues (self.inputs.nix-select.lib.select "clan.templates.machine.*.path" self);
+          ++ builtins.attrValues (self.inputs.nix-select.lib.select "clan.templates.machine.*.path" self)
+          ++ builtins.attrValues (self.inputs.nix-select.lib.select "clan.templates.disko.*.path" self);
       };
     in
     {

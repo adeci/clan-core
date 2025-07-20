@@ -68,7 +68,37 @@ templates: dict[str, dict[str, Callable[[dict[str, Any]], Placeholder]]] = {
         "mainDisk": lambda hw_report: Placeholder(
             label="Main disk", options=hw_main_disk_options(hw_report), required=True
         ),
-    }
+    },
+    "uefi-basic": {
+        # Placeholders
+        "mainDisk": lambda hw_report: Placeholder(
+            label="Main disk", options=hw_main_disk_options(hw_report), required=True
+        ),
+    },
+    "uefi-swap": {
+        # Placeholders
+        "mainDisk": lambda hw_report: Placeholder(
+            label="Main disk", options=hw_main_disk_options(hw_report), required=True
+        ),
+    },
+    "encrypted-basic": {
+        # Placeholders
+        "mainDisk": lambda hw_report: Placeholder(
+            label="Main disk", options=hw_main_disk_options(hw_report), required=True
+        ),
+    },
+    "btrfs-basic": {
+        # Placeholders
+        "mainDisk": lambda hw_report: Placeholder(
+            label="Main disk", options=hw_main_disk_options(hw_report), required=True
+        ),
+    },
+    "bcachefs-basic": {
+        # Placeholders
+        "mainDisk": lambda hw_report: Placeholder(
+            label="Main disk", options=hw_main_disk_options(hw_report), required=True
+        ),
+    },
 }
 
 
@@ -94,9 +124,15 @@ def get_machine_disk_schemas(
 
     :raises ClanError: If the hardware configuration is missing or invalid
     """
-    disk_templates = clan_templates(TemplateType.DISK)
     disk_schemas = {}
     hw_report = {}
+
+    builtin_templates = clan_templates(TemplateType.DISK)
+    local_templates_path = machine.flake.path / "templates" / "disk"
+
+    template_dirs = [(builtin_templates, False)]
+    if local_templates_path.exists():
+        template_dirs.append((local_templates_path, True))
 
     hw_report_path = HardwareConfig.NIXOS_FACTER.config_path(machine)
     if check_hw and not hw_report_path.exists():
@@ -107,36 +143,43 @@ def get_machine_disk_schemas(
         with hw_report_path.open("r") as hw_report_file:
             hw_report = json.load(hw_report_file)
 
-    for disk_template in disk_templates.iterdir():
-        if disk_template.is_dir():
-            schema_name = disk_template.stem
-            if schema_name not in templates:
-                msg = f"Disk schema {schema_name} not found in templates {templates.keys()}"
-                raise ClanError(
-                    msg,
-                    description="This is an internal architecture problem. Because disk schemas dont define their own interface",
+    for template_dir, is_local in template_dirs:
+        for disk_template in template_dir.iterdir():
+            if disk_template.is_dir():
+                schema_name = disk_template.stem
+
+                if schema_name in disk_schemas:
+                    continue
+
+                if not is_local and schema_name not in templates:
+                    msg = f"Disk schema {schema_name} not found in templates {templates.keys()}"
+                    raise ClanError(
+                        msg,
+                        description="This is an internal architecture problem. Because disk schemas dont define their own interface",
+                    )
+
+                placeholder_getters = templates.get(schema_name, {})
+                placeholders = {}
+
+                if placeholder_getters:
+                    placeholders = {
+                        k: v(hw_report) if hw_report else get_empty_placeholder(k)
+                        for k, v in placeholder_getters.items()
+                    }
+                elif is_local:
+                    placeholders = {"mainDisk": get_empty_placeholder("Main disk")}
+
+                raw_readme = (disk_template / "README.md").read_text()
+                frontmatter, readme = extract_frontmatter(
+                    raw_readme, f"{disk_template}/README.md"
                 )
 
-            placeholder_getters = templates.get(schema_name)
-            placeholders = {}
-
-            if placeholder_getters:
-                placeholders = {
-                    k: v(hw_report) if hw_report else get_empty_placeholder(k)
-                    for k, v in placeholder_getters.items()
-                }
-
-            raw_readme = (disk_template / "README.md").read_text()
-            frontmatter, readme = extract_frontmatter(
-                raw_readme, f"{disk_template}/README.md"
-            )
-
-            disk_schemas[schema_name] = DiskSchema(
-                name=schema_name,
-                placeholders=placeholders,
-                readme=readme,
-                frontmatter=frontmatter,
-            )
+                disk_schemas[schema_name] = DiskSchema(
+                    name=schema_name,
+                    placeholders=placeholders,
+                    readme=readme,
+                    frontmatter=frontmatter,
+                )
 
     return disk_schemas
 
@@ -176,11 +219,27 @@ def set_machine_disk_schema(
             msg = "Hardware configuration must use type FACTER for applying disk schema automatically"
             raise ClanError(msg)
 
-    disk_schema_path = clan_templates(TemplateType.DISK) / f"{schema_name}/default.nix"
+    builtin_path = clan_templates(TemplateType.DISK) / f"{schema_name}/default.nix"
+    local_path = (
+        machine.flake.path / "templates" / "disk" / f"{schema_name}/default.nix"
+    )
 
-    if not disk_schema_path.exists():
-        msg = f"Disk schema '{schema_name}' not found at {disk_schema_path}"
-        msg += f"\nAvailable schemas: {', '.join([p.name for p in clan_templates(TemplateType.DISK).iterdir()])}"
+    disk_schema_path = None
+    if local_path.exists():
+        disk_schema_path = local_path
+    elif builtin_path.exists():
+        disk_schema_path = builtin_path
+    else:
+        available_schemas = [
+            p.name for p in clan_templates(TemplateType.DISK).iterdir() if p.is_dir()
+        ]
+        local_templates_dir = machine.flake.path / "templates" / "disk"
+        if local_templates_dir.exists():
+            available_schemas.extend(
+                [p.name for p in local_templates_dir.iterdir() if p.is_dir()]
+            )
+        msg = f"Disk schema '{schema_name}' not found"
+        msg += f"\nAvailable schemas: {', '.join(sorted(set(available_schemas)))}"
         raise ClanError(msg)
 
     # Check that the placeholders are valid

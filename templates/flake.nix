@@ -5,8 +5,28 @@
       templates = {
         disko = {
           single-disk = {
-            description = "A simple ext4 disk with a single partition";
+            description = "BIOS & UEFI compatible (GRUB bootloader)";
             path = ./disk/single-disk;
+          };
+          uefi-basic = {
+            description = "Basic UEFI setup with systemd-boot";
+            path = ./disk/uefi-basic;
+          };
+          uefi-swap = {
+            description = "UEFI with swap partition (systemd-boot)";
+            path = ./disk/uefi-swap;
+          };
+          encrypted-basic = {
+            description = "Full disk encryption with LUKS (systemd-boot)";
+            path = ./disk/encrypted-basic;
+          };
+          btrfs-basic = {
+            description = "Modern Btrfs filesystem with snapshots (systemd-boot)";
+            path = ./disk/btrfs-basic;
+          };
+          bcachefs-basic = {
+            description = "Modern Bcachefs filesystem with compression (systemd-boot)";
+            path = ./disk/bcachefs-basic;
           };
         };
 

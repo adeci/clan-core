@@ -7,6 +7,7 @@ from typing import get_args
 from clan_lib.errors import ClanError
 from clan_lib.flake import require_flake
 from clan_lib.machines.install import BuildOn, InstallOptions, run_machine_install
+from clan_lib.machines.interactive import interactive_install_config
 from clan_lib.machines.machines import Machine
 from clan_lib.ssh.host_key import HostKeyCheck
 from clan_lib.ssh.remote import Remote
@@ -62,7 +63,26 @@ def install_command(args: argparse.Namespace) -> None:
             msg = "Installing macOS machines is not yet supported"
             raise ClanError(msg)
 
-        if not args.yes:
+        if args.interactive:
+            if not target_host_str:
+                msg = "Interactive mode requires --target-host to be specified"
+                raise ClanError(msg)
+
+            # Interactive mode always updates hardware config for accuracy
+            log.info(f"Fetching current hardware configuration for {args.machine}")
+            args.update_hardware_config = "nixos-facter"
+
+            interactive_config = interactive_install_config(
+                machine_name=args.machine,
+                target_host=target_host.target,
+                flake_path=flake.path,
+            )
+
+            log.info(
+                f"Generated disko.nix for {args.machine} with disk {interactive_config['disk']}"
+            )
+
+        elif not args.yes:
             ask = input(f"Install {args.machine} to {target_host.target}? [y/N] ")
             if ask != "y":
                 return None
@@ -122,6 +142,12 @@ def register_install_parser(parser: argparse.ArgumentParser) -> None:
         "--yes",
         action="store_true",
         help="do not ask for confirmation",
+        default=False,
+    )
+    parser.add_argument(
+        "--interactive",
+        action="store_true",
+        help="interactively select disk and partition layout from templates",
         default=False,
     )
     parser.add_argument(

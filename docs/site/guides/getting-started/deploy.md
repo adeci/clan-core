@@ -126,6 +126,10 @@ In your nix files set the targetHost (reachable ip) that you retrieved in the pr
 
 See also [how to set TargetHost](../target-host.md) for other methods.
 
+!!! tip "Streamlined Installation"
+    The following sections show the manual steps for hardware detection and disk configuration.
+    For a simplified experience, you can skip to [Interactive Installation](#option-b-interactive-installation) which handles all these steps automatically.
+
 ## Retrieve the hardware report
 
 By default clan uses [nixos-facter](https://github.com/nix-community/nixos-facter) which captures detailed information about the machine or virtual environment.
@@ -190,9 +194,11 @@ You can have a look and customize it if needed.
 
 ## Deploy the machine
 
-**Finally deployment time!** Use one of the following commands to build and deploy the image via SSH onto your machine.
+**Finally deployment time!** 
 
-### Deployment Commands
+### Option A: Manual Installation
+
+If you've already configured the disk schema manually (as shown above), use one of the following commands:
 
 #### Using password auth
 
@@ -212,11 +218,27 @@ clan machines install [MACHINE] --json "[JSON]"
 clan machines install [MACHINE] --png [PATH]
 ```
 
-#### Option B: Cloud VM
+#### Cloud VM
 
 ```bash
 clan machines install [MACHINE] --target-host <IP>
 ```
+
+### Option B: Interactive Installation
+
+The interactive installer handles hardware detection, disk configuration, and deployment in one step:
+
+```bash
+clan machines install jon --target-host root@192.168.192.4 --interactive
+```
+
+This will:
+
+- Automatically retrieve current hardware information
+- Detect available disks and show their sizes  
+- Present disk templates with visual previews
+- Apply your selected configuration from built-in templates or [create your own](../authoring/templates/disk/disko-templates.md)
+- Complete the installation
 
 !!! success
     Your machine is all set up. 🎉 🚀
