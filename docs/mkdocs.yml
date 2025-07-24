@@ -97,6 +97,7 @@ nav:
               - reference/clanServices/importer.md
               - reference/clanServices/mycelium.md
               - reference/clanServices/packages.md
+              - reference/clanServices/roster.md
               - reference/clanServices/sshd.md
               - reference/clanServices/state-version.md
               - reference/clanServices/trusted-nix-caches.md
