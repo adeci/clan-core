@@ -40,7 +40,7 @@
             pkgs,
             clan-core,
             ...
-          }:
+          }@args:
           let
             roleDefinitions = {
               owner = {
@@ -246,6 +246,7 @@
               useGlobalPkgs = true;
               useUserPackages = true;
               users = lib.mapAttrs generateHomeConfig homeManagerUsers;
+              extraSpecialArgs = { inherit (args) inputs; };
             };
 
             clan.core.vars.generators =
