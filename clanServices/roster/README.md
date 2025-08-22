@@ -1,12 +1,12 @@
 # Roster Module
 
-A comprehensive user management service for clan-core that combines role-based access control with home-manager integration.
+A comprehensive user management service for clan-core that combines position-based access control with home-manager integration.
 
 ## Overview
 
 The roster module provides:
 - **Centralized user management** across all machines
-- **Role-based access control** (owner, admin, basic, service)
+- **Position-based access control** (owner, admin, basic, service)
 - **Automatic password generation** for owner accounts
 - **SSH key management** with root access for privileged users
 - **Home-manager integration** with profile-based configuration
@@ -19,8 +19,8 @@ The roster module provides:
   inventory.instances = {
     roster = {
       module.name = "roster";
-      roles.default.tags.all = { };  # Apply to all machines
-      roles.default.settings = {
+      positions.default.tags.all = { };  # Apply to all machines
+      positions.default.settings = {
         users = import ./users.nix { };
         homeProfilesPath = ../home-profiles;
       };
@@ -36,15 +36,15 @@ The roster module provides:
 ```nix
 {
   services.roster = {
-    roles.default.tags.all = { };
-    roles.default.settings = {
+    positions.default.tags.all = { };
+    positions.default.settings = {
       users = {
         alice = {
           description = "Alice Smith";
           defaultUid = 1000;
           sshAuthorizedKeys = [ "ssh-ed25519 AAA..." ];
           machines.server1 = {
-            role = "owner";
+            position = "owner";
             shell = "bash";
             homeManager = {
               enable = true;
@@ -59,7 +59,7 @@ The roster module provides:
 }
 ```
 
-## User Roles
+## User Positions
 
 ### owner
 - Full sudo access via wheel group
@@ -117,14 +117,14 @@ Users can specify which profiles to load on each machine:
 ```nix
 machines = {
   laptop = {
-    role = "owner";
+    position = "owner";
     homeManager = {
       enable = true;
       profiles = [ "base" "desktop" "dev" ];  # Load all three profiles
     };
   };
   server = {
-    role = "admin";
+    position = "admin";
     homeManager = {
       enable = true;
       profiles = [ "base" ];  # Only load base profile
@@ -135,8 +135,8 @@ machines = {
 
 ### Default Behavior
 
-- `homeManager = true` - Equivalent to `{ enable = true; profiles = [ "base" ]; }`
-- `homeManager = false` or omitted - No home-manager configuration
+- `homeManager = { enable = true; }` - Defaults to `profiles = [ "base" ]`
+- `homeManager = {}` or omitted - No home-manager configuration (enable defaults to false)
 - Files in user's root profile directory are always loaded
 - `stateVersion.nix` can be placed in user's directory to set home-manager state version
 
@@ -144,12 +144,12 @@ machines = {
 
 Passwords are managed via clan's secrets system:
 
-### Owner Role
+### Owner Position
 - Password automatically generated if not provided
 - Stored as `user-password-<username>` secret
 - Can be overridden by providing password when prompted
 
-### Other Roles
+### Other Positions
 - Must provide password through other means
 - No automatic generation
 
@@ -172,12 +172,12 @@ alice = {
   defaultGroups = [ "wheel" ];
   machines = {
     server = {
-      role = "owner";
+      position = "owner";
       shell = "bash";
       # Use defaults for uid and groups
     };
     workstation = {
-      role = "admin";
+      position = "admin";
       shell = "zsh";
       uid = 1001;  # Override default
       groups = [ "audio" "video" ];  # Override default groups
@@ -191,8 +191,8 @@ alice = {
 ```nix
 {
   services.roster = {
-    roles.default.tags.all = { };
-    roles.default.settings = {
+    positions.default.tags.all = { };
+    positions.default.settings = {
       users = {
         # Primary administrator
         alice = {
@@ -204,11 +204,11 @@ alice = {
           ];
           machines = {
             server1 = {
-              role = "owner";
+              position = "owner";
               shell = "bash";
             };
             workstation = {
-              role = "owner";
+              position = "owner";
               shell = "zsh";
               homeManager = {
                 enable = true;
@@ -228,7 +228,7 @@ alice = {
           ];
           machines = {
             server1 = {
-              role = "admin";
+              position = "admin";
               shell = "fish";
               homeManager = {
                 enable = true;
@@ -246,7 +246,7 @@ alice = {
           sshAuthorizedKeys = [ ];
           machines = {
             server1 = {
-              role = "service";
+              position = "service";
             };
           };
         };
@@ -268,8 +268,8 @@ Roster works seamlessly with clan's inventory system. Define it once and deploy 
   instances = {
     roster = {
       module.name = "roster";
-      roles.default.tags.all = { };  # Deploy to all machines
-      roles.default.settings = {
+      positions.default.tags.all = { };  # Deploy to all machines
+      positions.default.settings = {
         users = import ./users.nix { };
         homeProfilesPath = ../home-profiles;
       };
@@ -283,5 +283,5 @@ Roster works seamlessly with clan's inventory system. Define it once and deploy 
 - User groups are automatically created with `gid = null` (auto-assigned)
 - The module sets `users.mutableUsers = false` for declarative user management
 - Shell programs are automatically enabled based on user assignments
-- Root user always gets SSH keys from users with owner/admin roles
+- Root user always gets SSH keys from users with owner/admin positions
 - Profile directories are loaded based on explicit user selection, not machine tags

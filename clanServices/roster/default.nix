@@ -3,7 +3,7 @@
   _class = "clan.service";
 
   manifest.name = "clan-core/roster";
-  manifest.description = "Holistic user management with role-based access control and home environment configuration";
+  manifest.description = "Holistic user management with position-based access control and home environment configuration";
   manifest.categories = [ "System" ];
 
   roles.default = {
@@ -14,7 +14,7 @@
           users = lib.mkOption {
             type = lib.types.attrsOf lib.types.anything;
             default = { };
-            description = "User definitions with machine assignments, roles, and home-manager configuration";
+            description = "User definitions with machine assignments, positions, and home-manager configuration";
           };
 
           homeProfilesPath = lib.mkOption {
@@ -26,44 +26,81 @@
             '';
           };
 
-        };
-      };
+          positionDefinitions = lib.mkOption {
+            type = lib.types.attrsOf (lib.types.submodule {
+              options = {
+                hasRootAccess = lib.mkOption {
+                  type = lib.types.bool;
+                  default = false;
+                  description = "Whether users with this position get sudo/wheel access";
+                };
 
-    perInstance =
-      { settings, machine, ... }:
-      {
+                generatePassword = lib.mkOption {
+                  type = lib.types.bool;
+                  default = false;
+                  description = "Whether to automatically generate passwords for users with this position";
+                };
 
-        nixosModule =
-          {
-            config,
-            lib,
-            pkgs,
-            clan-core,
-            ...
-          }@args:
-          let
-            roleDefinitions = {
+                additionalGroups = lib.mkOption {
+                  type = lib.types.listOf lib.types.str;
+                  default = [];
+                  description = "Additional groups to add to users with this position";
+                };
+
+                isSystemUser = lib.mkOption {
+                  type = lib.types.bool;
+                  default = false;
+                  description = "Whether this position represents a system user account";
+                };
+
+                createHome = lib.mkOption {
+                  type = lib.types.bool;
+                  default = true;
+                  description = "Whether to create a home directory for users with this position";
+                };
+
+                shell = lib.mkOption {
+                  type = lib.types.nullOr lib.types.str;
+                  default = null;
+                  description = "Default shell for users with this position (e.g., '/bin/false' for service accounts)";
+                };
+
+                description = lib.mkOption {
+                  type = lib.types.str;
+                  default = "";
+                  description = "Human-readable description of this position";
+                };
+              };
+            });
+
+            default = {
               owner = {
                 hasRootAccess = true;
                 generatePassword = true;
                 additionalGroups = [ "wheel" ];
                 isSystemUser = false;
                 createHome = true;
+                description = "Primary system administrator with auto-generated password";
               };
+
               admin = {
                 hasRootAccess = true;
                 generatePassword = false;
                 additionalGroups = [ "wheel" ];
                 isSystemUser = false;
                 createHome = true;
+                description = "Additional administrator without auto-generated password";
               };
+
               basic = {
                 hasRootAccess = false;
                 generatePassword = false;
                 additionalGroups = [ ];
                 isSystemUser = false;
                 createHome = true;
+                description = "Standard user account without sudo access";
               };
+
               service = {
                 hasRootAccess = false;
                 generatePassword = false;
@@ -71,244 +108,150 @@
                 isSystemUser = true;
                 createHome = false;
                 shell = "/bin/false";
+                description = "System service account without login capabilities";
               };
             };
 
-            allUsers = settings.users;
-            machineName = machine.name;
+            description = ''
+              Position definitions for the user hierarchy. Each position defines
+              permissions and characteristics for users assigned to it.
 
-            machineUsers = lib.filterAttrs (_username: userCfg: userCfg.machines ? ${machineName}) allUsers;
+              You can override individual settings (e.g., settings.positionDefinitions.admin.generatePassword = true)
+              or replace all definitions (e.g., settings.positionDefinitions = lib.mkForce { ... }).
+            '';
+          };
+        };
+      };
 
-            processUser =
-              username: userConfig:
-              let
-                machineConfig = userConfig.machines.${machineName};
-                roleConfig = roleDefinitions.${machineConfig.role};
-
-                baseGroups =
-                  if machineConfig ? groups && machineConfig.groups != null then
-                    machineConfig.groups
-                  else
-                    userConfig.defaultGroups;
-                finalGroups = baseGroups ++ roleConfig.additionalGroups;
-
-                finalUid =
-                  if machineConfig ? uid && machineConfig.uid != null then
-                    machineConfig.uid
-                  else
-                    userConfig.defaultUid;
-
-                finalShell =
-                  if machineConfig ? shell && machineConfig.shell != null then
-                    machineConfig.shell
-                  else if roleConfig ? shell && roleConfig.shell != null then
-                    roleConfig.shell
-                  else
-                    null;
-              in
-              {
-                isNormalUser = !roleConfig.isSystemUser;
-                isSystemUser = roleConfig.isSystemUser;
-                uid = lib.mkForce finalUid;
-                group = username;
-                extraGroups = finalGroups;
-                createHome = roleConfig.createHome;
-                openssh.authorizedKeys.keys = userConfig.sshAuthorizedKeys;
-                description = userConfig.description;
-
-                hashedPasswordFile =
-                  if roleConfig.generatePassword then
-                    config.clan.core.vars.generators."user-password-${username}".files."${username}-password-hash".path
-                  else
-                    null;
-              }
-              // lib.optionalAttrs (finalShell != null) {
-                shell = pkgs.${baseNameOf finalShell};
-              };
-
-            rootAuthorizedKeys = lib.concatLists (
-              lib.mapAttrsToList (
-                _username: userConfig:
-                let
-                  machineConfig = userConfig.machines.${machineName};
-                  roleConfig = roleDefinitions.${machineConfig.role};
-                in
-                if roleConfig.hasRootAccess then userConfig.sshAuthorizedKeys else [ ]
-              ) machineUsers
-            );
-
-            homeManagerEnabled = settings.homeProfilesPath != null;
-
-            homeManagerUsers = lib.filterAttrs (
-              _username: userCfg:
-              let
-                hmConfig = userCfg.machines.${machineName}.homeManager or false;
-              in
-              (builtins.isBool hmConfig && hmConfig) || (builtins.isAttrs hmConfig && (hmConfig.enable or false))
-            ) machineUsers;
-
-            generateHomeConfig =
-              username: userConfig:
-              let
-                userProfilePath = settings.homeProfilesPath + "/${username}";
-
-                stateVersion =
-                  if builtins.pathExists (userProfilePath + "/stateVersion.nix") then
-                    import (userProfilePath + "/stateVersion.nix")
-                  else
-                    "24.05";
-
-                homeManagerConfig = userConfig.machines.${machineName}.homeManager or false;
-                userProfiles =
-                  if builtins.isBool homeManagerConfig then [ "base" ] else homeManagerConfig.profiles or [ "base" ];
-
-                profileItems =
-                  if builtins.pathExists userProfilePath then builtins.readDir userProfilePath else { };
-
-                profileDirs = lib.filterAttrs (
-                  name: type: type == "directory" && lib.elem name userProfiles
-                ) profileItems;
-
-                rootNixFiles = lib.filterAttrs (
-                  name: type: type == "regular" && lib.hasSuffix ".nix" name && name != "stateVersion.nix"
-                ) profileItems;
-
-                loadProfileDirs = lib.mkMerge (
-                  lib.mapAttrsToList (
-                    profileName: _:
-                    let
-                      profileDir = userProfilePath + "/${profileName}";
-                      nixFiles = lib.filterAttrs (name: type: type == "regular" && lib.hasSuffix ".nix" name) (
-                        builtins.readDir profileDir
-                      );
-                      configs = lib.mapAttrsToList (name: _: import (profileDir + "/${name}")) nixFiles;
-                    in
-                    lib.mkMerge configs
-                  ) profileDirs
-                );
-
-                loadRootFiles = lib.mkMerge (
-                  lib.mapAttrsToList (name: _: import (userProfilePath + "/${name}")) rootNixFiles
-                );
-
-                loadAllProfiles = lib.mkMerge [
-                  loadProfileDirs
-                  loadRootFiles
-                ];
-              in
-              lib.mkMerge [
-                {
-                  home.stateVersion = stateVersion;
-                }
-                loadAllProfiles
-              ];
-
-          in
+    perInstance =
+      { settings, machine, ... }:
+      {
+        nixosModule =
           {
+          config,
+          lib,
+          pkgs,
+          clan-core,
+          ...
+          }@args:
+          let
+            # Import our modules
+            userModule = import ./user-module.nix { inherit lib pkgs; };
+            homeManagerLib = import ./home-manager.nix { inherit lib; };
+
+            # Position definitions now come from settings
+            positionDefinitions = settings.positionDefinitions;
+
+            # Core data
+            machineName = machine.name;
+            allUsers = settings.users;
+            machineUsers = userModule.getMachineUsers machineName allUsers;
+
+            # Home-manager setup
+            homeManagerEnabled = settings.homeProfilesPath != null;
+            homeManagerUsers = homeManagerLib.filterHomeManagerUsers machineName machineUsers;
+
+            # Build modular user configurations
+            processUser = username: userConfig:
+              let
+                positionConfig = positionDefinitions.${userConfig.machines.${machineName}.position};
+              in
+                userModule.buildUserModule machineName username userConfig positionConfig config;
+
+            # Get root SSH keys
+            rootAuthorizedKeys = userModule.getRootAuthorizedKeys machineName machineUsers positionDefinitions;
+
+            # Get required shells
+            requiredShells = userModule.getRequiredShells machineName machineUsers positionDefinitions;
+
+            # Password generation setup
+            usersNeedingPasswords = userModule.getUsersWithPasswordGeneration machineName machineUsers positionDefinitions;
+          in
+            {
             imports = lib.optional homeManagerEnabled clan-core.inputs.home-manager.nixosModules.home-manager;
 
+            # User groups (auto-assigned GIDs by default)
             users.groups = lib.mapAttrs (_username: _: {
-              gid = lib.mkForce null;
+              gid = lib.mkDefault null;
             }) machineUsers;
 
+            # User accounts
             users.users = lib.mapAttrs processUser machineUsers // {
               root = {
                 openssh.authorizedKeys.keys = rootAuthorizedKeys;
               };
             };
 
-            programs =
-              let
-                shellList = lib.unique (
-                  lib.filter (s: s != null && s != "/bin/false") (
-                    lib.mapAttrsToList (
-                      _: user:
-                      let
-                        machineConfig = user.machines.${machineName};
-                        roleConfig = roleDefinitions.${machineConfig.role};
-                      in
-                      if machineConfig ? shell && machineConfig.shell != null then
-                        machineConfig.shell
-                      else
-                        roleConfig.shell
-                    ) machineUsers
-                  )
-                );
-              in
-              lib.listToAttrs (
-                map (shell: {
-                  name = baseNameOf shell;
-                  value.enable = true;
-                }) shellList
-              );
+            # Enable required shells
+            programs = lib.listToAttrs (
+              map (shell: {
+                name = baseNameOf shell;
+                value.enable = true;
+              }) requiredShells
+            );
 
+            # Home-manager configuration
             home-manager = lib.mkIf homeManagerEnabled {
               useGlobalPkgs = true;
               useUserPackages = true;
-              users = lib.mapAttrs generateHomeConfig homeManagerUsers;
+              users = lib.mapAttrs 
+                (homeManagerLib.generateHomeConfig settings machineName) 
+                homeManagerUsers;
               extraSpecialArgs = { inherit (args) inputs; };
             };
 
+            # Password generators for owner position users
             clan.core.vars.generators =
               lib.mapAttrs'
-                (
-                  username: _userConfig:
-                  lib.nameValuePair "user-password-${username}" {
-                    share = false;
-                    files."${username}-password-hash" = {
-                      secret = false;
-                      neededFor = "users";
-                    };
-                    files."${username}-password" = {
-                      secret = true;
-                      deploy = false;
-                    };
-                    prompts."${username}-password" = {
-                      type = "hidden";
-                      persist = true;
-                      description = "Password for user ${username}. Leave blank to autogenerate.";
-                    };
-                    script = ''
+              (username: _userConfig:
+                lib.nameValuePair "user-password-${username}" {
+                  share = false;
+                  files."${username}-password-hash" = {
+                    secret = false;
+                    neededFor = "users";
+                  };
+                  files."${username}-password" = {
+                    secret = true;
+                    deploy = false;
+                  };
+                  prompts."${username}-password" = {
+                    type = "hidden";
+                    persist = true;
+                    description = "Password for user ${username}. Leave blank to autogenerate.";
+                  };
+                  script = ''
                       set -euo pipefail
 
                       prompt_value=$(cat "$prompts"/${username}-password)
 
                       if [[ -n "''${prompt_value-}" ]]; then
-                        echo "$prompt_value" | tr -d "\n" > "$out"/${username}-password
+                      echo "$prompt_value" | tr -d "\n" > "$out"/${username}-password
                       else
-                        xkcdpass \
-                          --numwords 3 \
-                          --delimiter - \
-                          --count 1 \
-                          | tr -d "\n" > "$out"/${username}-password
+                      xkcdpass \
+                      --numwords 3 \
+                      --delimiter - \
+                      --count 1 \
+                      | tr -d "\n" > "$out"/${username}-password
                       fi
 
                       mkpasswd -s -m sha-512 \
-                        < "$out"/${username}-password \
-                        | tr -d "\n" > "$out"/${username}-password-hash
-                    '';
-                    runtimeInputs = [
-                      pkgs.xkcdpass
-                      pkgs.mkpasswd
-                    ];
-                  }
-                )
-                (
-                  lib.filterAttrs (
-                    _username: userConfig:
-                    let
-                      machineConfig = userConfig.machines.${machineName};
-                      roleConfig = roleDefinitions.${machineConfig.role};
-                    in
-                    roleConfig.generatePassword
-                  ) machineUsers
-                );
+                      < "$out"/${username}-password \
+                      | tr -d "\n" > "$out"/${username}-password-hash
+                      '';
+                  runtimeInputs = [
+                    pkgs.xkcdpass
+                    pkgs.mkpasswd
+                  ];
+                }
+              )
+              usersNeedingPasswords;
           };
       };
   };
 
   perMachine = {
     nixosModule = {
+      # Disable mutable users for declarative user management
       users.mutableUsers = false;
     };
   };
