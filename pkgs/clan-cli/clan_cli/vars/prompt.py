@@ -127,23 +127,56 @@ def ask(
     log.info(f"Prompting value for {ident}")
     if MOCK_PROMPT_RESPONSE:
         return next(MOCK_PROMPT_RESPONSE)
-    try:
-        match input_type:
-            case PromptType.LINE:
-                result = input(f"{text}: ")
-            case PromptType.MULTILINE:
-                print(f"{text} (Finish with Ctrl-D): ")
-                result = sys.stdin.read()
-            case PromptType.MULTILINE_HIDDEN:
-                print(
-                    "Enter multiple lines (press Ctrl-D to finish or Ctrl-C to cancel):"
-                )
-                result = get_multiline_hidden_input()
-            case PromptType.HIDDEN:
-                result = getpass(f"{text} (hidden): ")
-    except KeyboardInterrupt as e:
-        msg = "User cancelled the input."
-        raise ClanError(msg) from e
 
-    log.info("Input received. Processing...")
-    return result
+    # For secret prompts (HIDDEN and MULTILINE_HIDDEN), ask twice to confirm
+    if input_type in (PromptType.HIDDEN, PromptType.MULTILINE_HIDDEN):
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            try:
+                match input_type:
+                    case PromptType.MULTILINE_HIDDEN:
+                        print(
+                            "Enter multiple lines (press Ctrl-D to finish or Ctrl-C to cancel):"
+                        )
+                        first_input = get_multiline_hidden_input()
+                        print(
+                            "Confirm by entering the same value again (press Ctrl-D to finish or Ctrl-C to cancel):"
+                        )
+                        second_input = get_multiline_hidden_input()
+                    case PromptType.HIDDEN:
+                        first_input = getpass(f"{text} (hidden): ")
+                        second_input = getpass(f"Confirm {text} (hidden): ")
+
+                if first_input == second_input:
+                    log.info("Input received and confirmed. Processing...")
+                    return first_input
+                remaining = max_attempts - attempt - 1
+                if remaining > 0:
+                    print(
+                        f"Values do not match. {remaining} attempt{'s' if remaining > 1 else ''} remaining."
+                    )
+                else:
+                    msg = f"Failed to confirm value for {ident} after {max_attempts} attempts."
+                    raise ClanError(msg)
+            except KeyboardInterrupt as e:
+                msg = "User cancelled the input."
+                raise ClanError(msg) from e
+    else:
+        # For non-secret prompts, keep original behavior
+        try:
+            match input_type:
+                case PromptType.LINE:
+                    result = input(f"{text}: ")
+                case PromptType.MULTILINE:
+                    print(f"{text} (Finish with Ctrl-D): ")
+                    result = sys.stdin.read()
+        except KeyboardInterrupt as e:
+            msg = "User cancelled the input."
+            raise ClanError(msg) from e
+
+        log.info("Input received. Processing...")
+        return result
+
+    # This should never be reached, but adding for completeness
+    msg = f"Failed to get input for {ident}"
+    raise ClanError(msg)
