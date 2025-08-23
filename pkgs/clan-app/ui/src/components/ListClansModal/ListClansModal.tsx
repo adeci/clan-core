@@ -5,15 +5,21 @@ import { Typography } from "@/src/components/Typography/Typography";
 import { Button } from "@/src/components/Button/Button";
 import { navigateToClan, navigateToOnboarding } from "@/src/hooks/clan";
 import { useNavigate } from "@solidjs/router";
-import { For } from "solid-js";
+import { For, Show } from "solid-js";
 import { activeClanURI, clanURIs, setActiveClanURI } from "@/src/stores/clan";
 import { useClanListQuery } from "@/src/hooks/queries";
+import { Alert } from "@/src/components/Alert/Alert";
+import { NavSection } from "../NavSection/NavSection";
 
-export interface ClansModalProps {
-  onClose: () => void;
+export interface ListClansModalProps {
+  onClose?: () => void;
+  error?: {
+    title: string;
+    description: string;
+  };
 }
 
-export const ListClansModal = (props: ClansModalProps) => {
+export const ListClansModal = (props: ListClansModalProps) => {
   const navigate = useNavigate();
 
   const query = useClanListQuery(clanURIs());
@@ -38,6 +44,14 @@ export const ListClansModal = (props: ClansModalProps) => {
       class={cx(styles.modal)}
     >
       <div class={cx(styles.content)}>
+        <Show when={props.error}>
+          <Alert
+            type="error"
+            title={props.error?.title || ""}
+            description={props.error?.description}
+          />
+        </Show>
+
         <div class={cx(styles.header)}>
           <Typography
             hierarchy="label"
@@ -55,7 +69,7 @@ export const ListClansModal = (props: ClansModalProps) => {
             size="s"
             startIcon="Plus"
             onClick={() => {
-              props.onClose();
+              props.onClose?.();
               navigateToOnboarding(navigate, true);
             }}
           >
@@ -65,20 +79,10 @@ export const ListClansModal = (props: ClansModalProps) => {
         <ul class={cx(styles.clans)}>
           <For each={clanList()}>
             {(clan) => (
-              <li class={cx(styles.clan)}>
-                <div class={cx(styles.meta)}>
-                  <Typography hierarchy="label" weight="bold" size="default">
-                    {clan.data.name}
-                  </Typography>
-                  <Typography hierarchy="body" size="s">
-                    {clan.data.description}
-                  </Typography>
-                </div>
-
-                <Button
-                  hierarchy="secondary"
-                  ghost
-                  icon="CaretRight"
+              <li>
+                <NavSection
+                  label={clan.data.name}
+                  description={clan.data.description ?? undefined}
                   onClick={selectClan(clan.data.uri)}
                 />
               </li>

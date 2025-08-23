@@ -3,15 +3,15 @@ import Icon from "@/src/components/Icon/Icon";
 import { DropdownMenu } from "@kobalte/core/dropdown-menu";
 import { useNavigate } from "@solidjs/router";
 import { Typography } from "../Typography/Typography";
-import { createSignal, For, Suspense } from "solid-js";
-import { useClanListQuery } from "@/src/hooks/queries";
+import { createSignal, For, Suspense, useContext } from "solid-js";
 import {
   navigateToClan,
   navigateToOnboarding,
   useClanURI,
 } from "@/src/hooks/clan";
-import { clanURIs, setActiveClanURI } from "@/src/stores/clan";
+import { setActiveClanURI } from "@/src/stores/clan";
 import { Button } from "../Button/Button";
+import { ClanContext } from "@/src/routes/Clan/Clan";
 
 export const SidebarHeader = () => {
   const navigate = useNavigate();
@@ -19,10 +19,23 @@ export const SidebarHeader = () => {
   const [open, setOpen] = createSignal(false);
 
   // get information about the current active clan
-  const clanURI = useClanURI();
-  const allClans = useClanListQuery(clanURIs());
+  const ctx = useContext(ClanContext);
 
-  const activeClan = () => allClans.find(({ data }) => data?.uri === clanURI);
+  if (!ctx) {
+    throw new Error("SidebarContext not found");
+  }
+
+  const clanURI = useClanURI();
+
+  const clanChar = () =>
+    ctx?.activeClanQuery?.data?.name.charAt(0).toUpperCase();
+  const clanName = () => ctx?.activeClanQuery?.data?.name;
+
+  const clanList = () =>
+    ctx.allClansQueries
+      .filter((it) => it.isSuccess)
+      .map((it) => it.data!)
+      .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div class="sidebar-header">
@@ -37,7 +50,7 @@ export const SidebarHeader = () => {
                   weight="bold"
                   inverted={true}
                 >
-                  {activeClan()?.data?.name.charAt(0).toUpperCase()}
+                  {clanChar()}
                 </Typography>
               </div>
               <Typography
@@ -46,7 +59,7 @@ export const SidebarHeader = () => {
                 weight="bold"
                 inverted={!open()}
               >
-                {activeClan()?.data?.name}
+                {clanName()}
               </Typography>
             </div>
             <DropdownMenu.Icon>
@@ -91,13 +104,13 @@ export const SidebarHeader = () => {
                   </Button>
                 </DropdownMenu.GroupLabel>
                 <div class="dropdown-group-items">
-                  <For each={allClans}>
+                  <For each={clanList()}>
                     {(clan) => (
                       <Suspense fallback={"Loading..."}>
                         <DropdownMenu.Item
                           class="dropdown-item"
                           onSelect={() => {
-                            setActiveClanURI(clan.data!.uri);
+                            setActiveClanURI(clan.uri);
                           }}
                         >
                           <Typography
@@ -105,7 +118,7 @@ export const SidebarHeader = () => {
                             size="xs"
                             weight="medium"
                           >
-                            {clan.data?.name}
+                            {clan.name}
                           </Typography>
                         </DropdownMenu.Item>
                       </Suspense>
