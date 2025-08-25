@@ -335,13 +335,9 @@
               username: userConfig:
               let
                 # Get position from machine config or user's default
-                position =
-                  if userConfig.machineConfig.position != null then
-                    userConfig.machineConfig.position
-                  else if userConfig.defaultPosition != null then
-                    userConfig.defaultPosition
-                  else
-                    throw "No position defined for user '${username}' on machine '${machineName}'";
+                position = userModule.getUserPosition userConfig (
+                  throw "No position defined for user '${username}' on machine '${machineName}'"
+                );
                 positionConfig = positionDefinitions.${position};
               in
               userModule.buildUserModule machineName username userConfig positionConfig config;
@@ -422,7 +418,7 @@
               lib.nameValuePair "user-password-${username}" {
                 share = false;
                 files."${username}-password-hash" = {
-                  secret = false;
+                  secret = true;
                   neededFor = "users";
                 };
                 files."${username}-password" = {
