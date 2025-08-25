@@ -1,287 +1,224 @@
-# Roster Module
+# Roster Service
 
-A comprehensive user management service for clan-core that combines position-based access control with home-manager integration.
+Unified user and home environment management across your entire machine fleet.
 
 ## Overview
 
-The roster module provides:
-- **Centralized user management** across all machines
-- **Position-based access control** (owner, admin, basic, service)
-- **Automatic password generation** for owner accounts
-- **SSH key management** with root access for privileged users
-- **Home-manager integration** with profile-based configuration
-- **Shell provisioning** based on user preferences
+The roster service provides centralized user management with:
+- **Machine-centric configuration** - Define users per machine, not machines per user
+- **Position-based access control** - Assign users to positions (owner, admin, basic, service) with predefined permissions
+- **Home-manager integration** - Automatically configure user environments with profile-based home configurations
+- **Automatic password generation** - Securely generate passwords for administrative users
+- **SSH key management** - Centralized SSH authorized keys with automatic root access for owners/admins
 
-## Usage
+## Quick Start
 
 ```nix
-{
-  inventory.instances = {
-    roster = {
-      module.name = "roster";
-      positions.default.tags.all = { };  # Apply to all machines
-      positions.default.settings = {
-        users = import ./users.nix { };
-        homeProfilesPath = ../home-profiles;
-      };
+# inventory/roster.nix
+let
+  roster-users = {
+    alice = {
+      description = "Alice Smith";
+      defaultUid = 1001;
+      defaultGroups = [ "networkmanager" "video" ];
+      sshAuthorizedKeys = [ "ssh-ed25519 AAAA..." ];
+      defaultPosition = "owner";
+      defaultShell = "fish";
+    };
+
+    bob = {
+      description = "Bob Jones";
+      defaultUid = 1002;
+      defaultGroups = [ "networkmanager" ];
+      sshAuthorizedKeys = [ "ssh-ed25519 BBBB..." ];
+      defaultPosition = "basic";
+      defaultShell = "bash";
     };
   };
-}
-```
 
-## Configuration
-
-### Minimal Example
-
-```nix
-{
-  services.roster = {
-    positions.default.tags.all = { };
-    positions.default.settings = {
+  roster-machines = {
+    workstation = {
       users = {
         alice = {
-          description = "Alice Smith";
-          defaultUid = 1000;
-          sshAuthorizedKeys = [ "ssh-ed25519 AAA..." ];
-          machines.server1 = {
-            position = "owner";
-            shell = "bash";
-            homeManager = {
-              enable = true;
-              profiles = [ "base" "desktop" ];
-            };
+          position = "owner";  # Full admin with password
+          homeManager = {
+            enable = true;
+            profiles = [ "dev" "desktop" ];
+          };
+        };
+        bob = {
+          position = "basic";  # Regular user
+          homeManager = {
+            enable = true;
+            profiles = [ "minimal" ];
           };
         };
       };
-      homeProfilesPath = ../home-profiles;
+    };
+
+    server = {
+      users = {
+        alice = {
+          position = "admin";  # Admin without auto-password
+          shell = "/bin/sh";   # Override default shell
+          homeManager.enable = false;  # No home-manager on servers
+        };
+      };
+    };
+  };
+in {
+  services.self-roster = {
+    settings = {
+      users = roster-users;
+      machines = roster-machines;
+      homeProfilesPath = ./home-profiles;
     };
   };
 }
 ```
 
-## User Positions
+## Core Concepts
 
-### owner
-- Full sudo access via wheel group
-- Password automatically generated via clan secrets
-- SSH keys added to root's authorized_keys
-- Intended for primary system administrators
+### Users
+Define each user once with their identity and defaults:
+- **Identity**: Description, SSH keys, default UID
+- **Defaults**: Default groups, position, shell
+- **Overrides**: Home state version for specific NixOS compatibility
 
-### admin
-- Full sudo access via wheel group
-- Must provide own password
-- SSH keys added to root's authorized_keys
-- Intended for additional administrators
+### Machines
+Each machine declares its users and their specific configuration:
+- **Position**: Role on this specific machine (owner/admin/basic/service)
+- **Overrides**: Machine-specific shell, UID, or groups
+- **Home-manager**: Enable and select profiles for this machine
+- **Machine options**: Shared home-manager settings (e.g., monitor configuration)
 
-### basic
-- Standard user account
-- No sudo access
-- Must provide own password
-- Intended for regular users
+### Positions
+Pre-defined permission sets that users are assigned to:
 
-### service
-- System user account
-- No login shell (`/bin/false`)
-- No home directory
-- Intended for running services
+| Position | Root Access | Password Gen | Home Dir | Login | Use Case |
+|----------|------------|--------------|----------|-------|----------|
+| `owner`  | ✓ | ✓ | ✓ | ✓ | Primary admin with generated password |
+| `admin`  | ✓ | ✗ | ✓ | ✓ | Additional admin, brings own password |
+| `basic`  | ✗ | ✗ | ✓ | ✓ | Regular user without privileges |
+| `service`| ✗ | ✗ | ✗ | ✗ | System service account |
 
-## Home-Manager Integration
+## Home Profiles
 
-### Profile System
-
-When `homeProfilesPath` is set, users can have home-manager configurations organized by profiles:
+Organize user configurations into composable profiles:
 
 ```
 home-profiles/
 ├── alice/
-│   ├── base/             # Always loaded when specified
+│   ├── dev/          # Development environment profile
 │   │   ├── git.nix
-│   │   └── zsh.nix
-│   ├── desktop/          # Desktop environment configs
-│   │   ├── firefox.nix
-│   │   └── alacritty.nix
-│   └── dev/              # Development tools
-│       ├── neovim.nix
-│       └── vscode.nix
+│   │   ├── neovim.nix
+│   │   └── tools.nix
+│   └── desktop/      # Desktop environment profile
+│       ├── hyprland.nix
+│       ├── firefox.nix
+│       └── theme.nix
 └── bob/
-    ├── base/
-    │   └── fish.nix
-    └── dev/
-        └── emacs.nix
+└── minimal/      # Minimal setup
+└── shell.nix
 ```
 
-### Profile Selection
+Users select which profiles to load per machine - no duplication of configurations.
 
-Users can specify which profiles to load on each machine:
+## Advanced Features
+
+### Machine-Specific Home-Manager Options
+
+Configure per-machine settings that apply to all users:
 
 ```nix
-machines = {
+roster-machines = {
   laptop = {
-    position = "owner";
-    homeManager = {
-      enable = true;
-      profiles = [ "base" "desktop" "dev" ];  # Load all three profiles
-    };
-  };
-  server = {
-    position = "admin";
-    homeManager = {
-      enable = true;
-      profiles = [ "base" ];  # Only load base profile
-    };
+    users = { ... };
+      homeManagerOptions = {
+        sharedModules = [{
+          # Monitor config for this specific laptop
+          wayland.windowManager.hyprland.settings.monitor = [
+            "eDP-1,2880x1920@120,auto,2"
+          ];
+        }];
+      };
   };
 };
 ```
 
-### Default Behavior
+### Custom Position Definitions
 
-- `homeManager = { enable = true; }` - Defaults to `profiles = [ "base" ]`
-- `homeManager = {}` or omitted - No home-manager configuration (enable defaults to false)
-- Files in user's root profile directory are always loaded
-- `stateVersion.nix` can be placed in user's directory to set home-manager state version
-
-## Password Management
-
-Passwords are managed via clan's secrets system:
-
-### Owner Position
-- Password automatically generated if not provided
-- Stored as `user-password-<username>` secret
-- Can be overridden by providing password when prompted
-
-### Other Positions
-- Must provide password through other means
-- No automatic generation
-
-### Commands
-```bash
-# Generate password for owner
-clan secrets generate user-password-alice
-
-# View generated password
-clan secrets get user-password-alice --password
-```
-
-## Machine-Specific Settings
-
-Users can have different configurations per machine:
+Override or extend the default positions:
 
 ```nix
-alice = {
-  defaultUid = 1000;
-  defaultGroups = [ "wheel" ];
-  machines = {
-    server = {
-      position = "owner";
-      shell = "bash";
-      # Use defaults for uid and groups
-    };
-    workstation = {
-      position = "admin";
-      shell = "zsh";
-      uid = 1001;  # Override default
-      groups = [ "audio" "video" ];  # Override default groups
+services.self-roster = {
+  settings = {
+    positionDefinitions = {
+      contractor = {
+        hasRootAccess = false;
+        generatePassword = false;
+        additionalGroups = [ "docker" "development" ];
+        isSystemUser = false;
+        createHome = true;
+        shell = "/run/current-system/sw/bin/bash";
+        description = "External contractor with limited access";
+      };
     };
   };
 };
+```
+
+### Global Home-Manager Options
+
+Configure home-manager behavior across all machines:
+
+```nix
+services.self-roster = {
+  settings = {
+    homeManagerOptions = {
+      useGlobalPkgs = true;        # Use system nixpkgs
+      useUserPackages = true;       # Install to /etc/profiles
+      backupFileExtension = "bak";  # Backup existing files as .bak
+      verbose = false;              # Quiet activation
+    };
+  };
+};
+```
+
+## Benefits
+
+1. **Single Source of Truth**: Each user and machine defined exactly once
+2. **No Redundancy**: Machine configurations aren't duplicated across user definitions
+3. **Flexible Overrides**: Defaults at user level, overrides at machine level
+4. **Composable Profiles**: Mix and match home-manager profiles per machine
+5. **Type Safety**: Full NixOS module type checking prevents configuration errors
+6. **Secure by Default**: Automatic password generation for admins, SSH key management
+7. **Scalable**: Add new machines or users without touching existing configs
+
+## Migration from Traditional Setup
+
+Traditional NixOS:
+```nix
+# Scattered across multiple files
+users.users.alice = { ... };
+users.users.bob = { ... };
+home-manager.users.alice = { ... };
+home-manager.users.bob = { ... };
+```
+
+With Roster:
+```nix
+# All in one place, DRY principle
+roster-users = { alice = { ... }; bob = { ... }; };
+  roster-machines = { 
+    machine1 = { users = { alice = { ... }; }; };
+  };
 ```
 
 ## Complete Example
 
-```nix
-{
-  services.roster = {
-    positions.default.tags.all = { };
-    positions.default.settings = {
-      users = {
-        # Primary administrator
-        alice = {
-          description = "Alice Smith";
-          defaultUid = 1000;
-          defaultGroups = [ "wheel" "networkmanager" ];
-          sshAuthorizedKeys = [
-            "ssh-ed25519 AAAAC3NzaC1... alice@laptop"
-          ];
-          machines = {
-            server1 = {
-              position = "owner";
-              shell = "bash";
-            };
-            workstation = {
-              position = "owner";
-              shell = "zsh";
-              homeManager = {
-                enable = true;
-                profiles = [ "base" "desktop" "dev" ];
-              };
-            };
-          };
-        };
-
-        # Additional admin
-        bob = {
-          description = "Bob Jones";
-          defaultUid = 1001;
-          defaultGroups = [ "wheel" ];
-          sshAuthorizedKeys = [
-            "ssh-ed25519 AAAAC3NzaC1... bob@desktop"
-          ];
-          machines = {
-            server1 = {
-              position = "admin";
-              shell = "fish";
-              homeManager = {
-                enable = true;
-                profiles = [ "base" ];
-              };
-            };
-          };
-        };
-
-        # Service account
-        webserver = {
-          description = "Web Server User";
-          defaultUid = 8080;
-          defaultGroups = [ ];
-          sshAuthorizedKeys = [ ];
-          machines = {
-            server1 = {
-              position = "service";
-            };
-          };
-        };
-      };
-
-      homeProfilesPath = ../home-profiles;
-    };
-  };
-}
-```
-
-## Integration with Inventory
-
-Roster works seamlessly with clan's inventory system. Define it once and deploy to all machines:
-
-```nix
-# inventory/core/default.nix
-{
-  instances = {
-    roster = {
-      module.name = "roster";
-      positions.default.tags.all = { };  # Deploy to all machines
-      positions.default.settings = {
-        users = import ./users.nix { };
-        homeProfilesPath = ../home-profiles;
-      };
-    };
-  };
-}
-```
-
-## Notes
-
-- User groups are automatically created with `gid = null` (auto-assigned)
-- The module sets `users.mutableUsers = false` for declarative user management
-- Shell programs are automatically enabled based on user assignments
-- Root user always gets SSH keys from users with owner/admin positions
-- Profile directories are loaded based on explicit user selection, not machine tags
+See the [examples directory](./examples/) for complete configurations including:
+- Multi-machine development environment
+- Laptop with full desktop environment
+- Headless server setup
+- Service account configuration
