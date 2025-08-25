@@ -105,6 +105,7 @@ nav:
               - reference/clanServices/mycelium.md
               - reference/clanServices/monitoring.md
               - reference/clanServices/packages.md
+              - reference/clanServices/roster.md
               - reference/clanServices/sshd.md
               - reference/clanServices/state-version.md
               - reference/clanServices/syncthing.md
