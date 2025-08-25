@@ -1,5 +1,15 @@
 { lib, pkgs }:
 rec {
+  # Get the position for a user with fallback logic
+  getUserPosition =
+    userConfig: fallback:
+    if userConfig.machineConfig.position != null then
+      userConfig.machineConfig.position
+    else if userConfig.defaultPosition != null then
+      userConfig.defaultPosition
+    else
+      fallback;
+
   # Build a modular user configuration
   buildUserModule =
     _machineName: username: userConfig: positionConfig: config:
@@ -60,13 +70,7 @@ rec {
       lib.mapAttrsToList (
         _username: userConfig:
         let
-          position =
-            if userConfig.machineConfig.position != null then
-              userConfig.machineConfig.position
-            else if userConfig.defaultPosition != null then
-              userConfig.defaultPosition
-            else
-              "basic"; # Fallback for root SSH key check
+          position = getUserPosition userConfig "basic";
           positionConfig = positionDefinitions.${position};
         in
         if positionConfig.hasRootAccess then userConfig.sshAuthorizedKeys or [ ] else [ ]
@@ -81,13 +85,7 @@ rec {
         _: user:
         let
           machineConfig = user.machineConfig;
-          position =
-            if machineConfig.position != null then
-              machineConfig.position
-            else if user.defaultPosition != null then
-              user.defaultPosition
-            else
-              throw "No position defined for user in getRequiredShells";
+          position = getUserPosition user (throw "No position defined for user in getRequiredShells");
           positionConfig = positionDefinitions.${position};
         in
         if machineConfig.shell != null then
@@ -106,13 +104,7 @@ rec {
     lib.filterAttrs (
       _username: userConfig:
       let
-        position =
-          if userConfig.machineConfig.position != null then
-            userConfig.machineConfig.position
-          else if userConfig.defaultPosition != null then
-            userConfig.defaultPosition
-          else
-            "basic"; # Fallback for password generation check
+        position = getUserPosition userConfig "basic";
         positionConfig = positionDefinitions.${position};
       in
       positionConfig.generatePassword
